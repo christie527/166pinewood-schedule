@@ -1581,14 +1581,14 @@ function markUnsaved() {
 // ============================================================
 // ⚠️ SETUP REQUIRED: Replace the config below with YOUR Firebase config.
 // See the SETUP-GUIDE.md file for step-by-step instructions.
-const firebaseConfig = {
-  apiKey: "AIzaSyDkO7zdfUXx9ahmXqX_eI_ke7_iXYrUJMc",
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB1abc123...",
   authDomain: "pinewood-166.firebaseapp.com",
   databaseURL: "https://pinewood-166-default-rtdb.firebaseio.com",
   projectId: "pinewood-166",
-  storageBucket: "pinewood-166.firebasestorage.app",
-  messagingSenderId: "946653657310",
-  appId: "1:946653657310:web:ff5062f7f0db322f8cea4f"
+  storageBucket: "pinewood-166.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123..."
 };
 
 let firebaseReady = false;
@@ -1598,10 +1598,15 @@ let isLoadingFromServer = false;
 
 function initFirebase() {
   if (FIREBASE_CONFIG.apiKey === "YOUR_API_KEY_HERE") {
-    document.getElementById('save-status').textContent = '⚠️ Firebase not configured — see SETUP-GUIDE.md';
+    document.getElementById('save-status').textContent = '⚠️ Set up Firebase to sync — see SETUP-GUIDE';
     document.getElementById('save-status').className = 'status unsaved';
     document.getElementById('save-status').style.fontSize = '0.75rem';
-    console.warn('Firebase not configured. Data will not sync between users. Follow SETUP-GUIDE.md to enable.');
+    return false;
+  }
+  if (typeof firebase === 'undefined') {
+    console.warn('Firebase SDK not loaded');
+    document.getElementById('save-status').textContent = '⚠ Firebase SDK failed to load';
+    document.getElementById('save-status').className = 'status unsaved';
     return false;
   }
   try {
@@ -1860,26 +1865,29 @@ function submitAddDecision() {
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
-  // Try Firebase first
+  // Always initialize with default data first so the page is never blank
+  initData();
+  renderAll();
+
+  // Then try Firebase
   const fbOk = initFirebase();
 
-  if (!fbOk) {
-    // Firebase not configured — use local storage fallback
-    if (!loadLocalFallback()) {
-      initData();
-    }
-    renderAll();
-  } else {
-    // Firebase is connected — it will load data via the 'value' listener.
-    // But we need initial data in case the database is empty.
+  if (fbOk) {
+    // Firebase connected — the real-time listener (dbRef.on 'value')
+    // will overwrite local data when it fires.
+    // But if the database is empty, seed it with our defaults.
     dbRef.once('value').then((snapshot) => {
       if (!snapshot.val()) {
-        // Database is empty — seed it with the default schedule
-        initData();
-        renderAll();
-        autoSave();
+        autoSave(); // Push default data to Firebase for other users
       }
+    }).catch((err) => {
+      console.error('Firebase read failed:', err);
     });
+  } else {
+    // No Firebase — try loading from localStorage
+    if (loadLocalFallback()) {
+      renderAll();
+    }
   }
 });
 
