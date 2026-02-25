@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>166 Pinewood — Project Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+:root {
+  --navy: #1a2744;
+  --navy-light: #243454;
+  --steel: #4472c4;
+  --steel-light: #5b8fd4;
+  --blue-pale: #e8f0fe;
+  --blue-wash: #f4f8ff;
+  --slate: #64748b;
+  --slate-dark: #475569;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --bg: #f8fafc;
+  --white: #ffffff;
+  --green: #16a34a;
+  --green-bg: #dcfce7;
+  --green-border: #86efac;
+  --amber: #d97706;
+  --amber-bg: #fef3c7;
+  --amber-border: #fcd34d;
+  --red: #dc2626;
+  --red-bg: #fee2e2;
+  --red-border: #fca5a5;
+  --purple: #7c3aed;
+  --purple-bg: #ede9fe;
+  --owner-rebecca: #f59e0b;
+  --owner-rebecca-bg: #fffbeb;
+  --owner-steve: #ef4444;
+  --owner-steve-bg: #fef2f2;
+  --owner-caleb: #22c55e;
+  --owner-caleb-bg: #f0fdf4;
+  --confirm-bg: #fff7ed;
+  --confirm-border: #fed7aa;
+  --receipt-bg: #faf5ff;
+  --receipt-border: #d8b4fe;
+  --milestone-bg: #eff6ff;
+  --milestone-border: #93c5fd;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 14px; }
+body {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ---- HEADER ---- */
+.app-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+}
+.app-header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+.app-header h1 span { color: var(--steel-light); font-weight: 400; }
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.7);
+}
+.header-meta .target {
+  background: rgba(255,255,255,0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.9);
+}
+
+/* ---- TABS ---- */
+.tab-bar {
+  display: flex;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  gap: 0;
+  position: sticky;
+  top: 56px;
+  z-index: 99;
+}
+.tab-btn {
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--steel); }
+.tab-btn.active {
+  color: var(--steel);
+  border-bottom-color: var(--steel);
+  font-weight: 600;
+}
+.tab-btn .badge {
+  display: inline-block;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+/* ---- PANELS ---- */
+.panel { display: none; padding: 20px 24px; }
+.panel.active { display: block; }
+
+/* ---- DASHBOARD CARDS ---- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+.kpi-card .kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.kpi-card .kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--navy);
+}
+.kpi-card .kpi-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.kpi-card.highlight { border-color: var(--red-border); background: var(--red-bg); }
+.kpi-card.highlight .kpi-value { color: var(--red); }
+
+.dash-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.dash-section {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.dash-section-header {
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dash-section-header.navy { background: var(--navy); color: #fff; }
+.dash-section-header.amber { background: var(--amber); color: #fff; }
+.dash-section-header.red { background: var(--red); color: #fff; }
+.dash-section-header.green { background: var(--green); color: #fff; }
+.dash-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.85rem;
+}
+.dash-row:last-child { border-bottom: none; }
+.dash-row .label { color: var(--text); }
+.dash-row .date { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary); }
+.dash-row .owner-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.owner-badge.rebecca { background: var(--owner-rebecca-bg); color: var(--owner-rebecca); border: 1px solid #fcd34d; }
+.owner-badge.steve { background: var(--owner-steve-bg); color: var(--owner-steve); border: 1px solid #fca5a5; }
+.status-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.status-pill.complete { background: var(--green-bg); color: var(--green); }
+.status-pill.progress { background: var(--amber-bg); color: var(--amber); }
+.status-pill.upcoming { background: var(--blue-pale); color: var(--steel); }
+
+/* ---- SCHEDULE TABLE ---- */
+.schedule-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.schedule-controls label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
+.schedule-controls select, .schedule-controls input[type="text"] {
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text);
+}
+.schedule-controls input[type="text"] { width: 220px; }
+.btn {
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--blue-wash); border-color: var(--steel); color: var(--steel); }
+.btn.primary { background: var(--steel); color: #fff; border-color: var(--steel); }
+.btn.primary:hover { background: var(--steel-light); }
+.btn.danger { background: var(--red); color: #fff; border-color: var(--red); }
+
+.table-wrap {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+thead th {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+tbody tr:hover { background: var(--blue-wash); }
+tbody tr.phase-header td {
+  background: var(--blue-pale);
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 0.85rem;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--steel);
+}
+tbody tr.confirm-row td { background: var(--confirm-bg); }
+tbody tr.receipt-row td { background: var(--receipt-bg); }
+tbody tr.milestone-row td { background: var(--milestone-bg); font-weight: 600; }
+tbody tr.complete-row td { opacity: 0.65; }
+
+td.editable {
+  cursor: pointer;
+  position: relative;
+}
+td.editable:hover { background: rgba(68,114,196,0.08); }
+td input, td select {
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 4px 6px;
+  border: 1px solid var(--steel);
+  border-radius: 4px;
+  width: 100%;
+  background: #fff;
+}
+td input[type="number"] { width: 60px; text-align: center; }
+td input[type="date"] { width: 130px; }
+
+.task-type-badge {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.task-type-badge.construction { background: #dbeafe; color: #1d4ed8; }
+.task-type-badge.inspection { background: #fef3c7; color: #92400e; }
+.task-type-badge.procurement { background: #e0e7ff; color: #3730a3; }
+.task-type-badge.admin { background: #f3f4f6; color: #374151; }
+.task-type-badge.confirm { background: #ffedd5; color: #c2410c; }
+.task-type-badge.receipt { background: #f3e8ff; color: #6b21a8; }
+.task-type-badge.milestone { background: #dbeafe; color: #1e40af; }
+
+/* ---- GANTT ---- */
+.gantt-container {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+  margin-top: 20px;
+}
+.gantt-header {
+  padding: 14px 18px;
+  font-weight: 600;
+  background: var(--navy);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.gantt-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.gantt-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gantt-legend .swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+#gantt-canvas { width: 100%; display: block; }
+
+/* ---- OWNER DECISIONS TABLE ---- */
+.owner-alert {
+  background: linear-gradient(90deg, #fef2f2 0%, #fffbeb 100%);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 1024px) {
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-cols { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .tab-bar { overflow-x: auto; }
+  .panel { padding: 12px; }
+}
+
+/* ---- GANTT TOOLTIP ---- */
+.gantt-tooltip {
+  position: fixed;
+  background: var(--navy);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  max-width: 300px;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+  display: none;
+}
+.gantt-tooltip .tt-title { font-weight: 600; margin-bottom: 4px; }
+.gantt-tooltip .tt-dates { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; opacity: 0.8; }
+.gantt-tooltip .tt-duration { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+
+/* Critical path highlight */
+tbody tr.critical-path td { border-left: 3px solid var(--red); }
+
+/* Dependency arrows in notes */
+.dep-tag {
+  display: inline-block;
+  background: var(--blue-pale);
+  color: var(--steel);
+  font-size: 0.7rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-right: 3px;
+}
+
+/* Save/Load bar */
+.save-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.save-bar .status { color: var(--green); font-weight: 500; }
+.save-bar .status.unsaved { color: var(--amber); }
+
+.hidden { display: none !important; }
+
+/* ---- MODAL ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 560px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 0;
+}
+.modal-header {
+  padding: 16px 20px;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-header button {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.modal-header button:hover { color: #fff; }
+.modal-body { padding: 20px; }
+.modal-body .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.modal-body .form-row label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.modal-body .form-row input,
+.modal-body .form-row select,
+.modal-body .form-row textarea {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text);
+}
+.modal-body .form-row textarea { resize: vertical; min-height: 60px; }
+.modal-body .form-row-inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>166 Pinewood <span>— Project Manager</span></h1>
+  <div class="header-meta">
+    <span id="project-completion-header"></span>
+    <span class="target">🎯 Target: June 7, 2026</span>
+  </div>
+</header>
+
+<div class="save-bar">
+  <span style="font-weight:500;color:var(--navy)">🔄 Auto-saves for all users</span>
+  <span id="save-status" class="status">Connecting...</span>
+  <button class="btn" onclick="recalcAll();renderAll();debouncedSave();" title="Re-run the dependency engine to recalculate all dates" style="margin-left:auto">🔄 Recalculate Dates</button>
+  <button class="btn" onclick="resetToDefaults()" title="Reset all data back to the original schedule">⚠️ Reset to Original</button>
+</div>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+  <button class="tab-btn" data-tab="schedule">🔨 Caleb's Schedule</button>
+  <button class="tab-btn" data-tab="owners">📋 Owner Decisions<span class="badge" id="owner-badge">0</span></button>
+  <button class="tab-btn" data-tab="gantt">📅 Gantt Chart</button>
+</nav>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="panel active"></div>
+
+<!-- SCHEDULE -->
+<div id="schedule" class="panel">
+  <div class="schedule-controls">
+    <label>Filter:</label>
+    <select id="filter-phase" onchange="renderSchedule()">
+      <option value="all">All Phases</option>
+    </select>
+    <select id="filter-status" onchange="renderSchedule()">
+      <option value="all">All Statuses</option>
+      <option value="complete">✅ Complete</option>
+      <option value="progress">🔄 In Progress</option>
+      <option value="not-started">⬜ Not Started</option>
+      <option value="overdue">🔴 Overdue</option>
+    </select>
+    <select id="filter-type" onchange="renderSchedule()">
+      <option value="all">All Types</option>
+      <option value="construction">Construction</option>
+      <option value="confirm">🔶 Confirm & Order</option>
+      <option value="receipt">📦 Material Receipt</option>
+      <option value="inspection">⭐ Inspection</option>
+      <option value="procurement">Procurement</option>
+    </select>
+    <input type="text" id="filter-search" placeholder="Search tasks..." oninput="renderSchedule()">
+    <label style="margin-left:auto;"><input type="checkbox" id="show-complete" checked onchange="renderSchedule()"> Show complete</label>
+    <label><input type="checkbox" id="highlight-critical" onchange="renderSchedule()"> Critical path</label>
+    <button class="btn primary" onclick="openAddTaskModal()" style="margin-left:8px">＋ Add Task</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50px">#</th>
+          <th>Task</th>
+          <th style="width:80px">Days</th>
+          <th>Predecessors</th>
+          <th style="width:110px">Start</th>
+          <th style="width:110px">Finish</th>
+          <th style="width:55px">Slack</th>
+          <th style="width:100px">Status</th>
+          <th style="width:75px">Type</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="schedule-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- OWNERS -->
+<div id="owners" class="panel">
+  <div class="owner-alert">
+    ⚠️ <strong>Rebecca & Steve:</strong> These are YOUR decisions and selections. Delays here directly delay Caleb's construction schedule. Each decision has a corresponding "Confirm & Order" task and "Material Receipt" task in Caleb's schedule that will shift automatically.
+  </div>
+  <div style="margin-bottom:12px"><button class="btn primary" onclick="openAddDecisionModal()">＋ Add Owner Decision</button></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:35px">#</th>
+          <th style="min-width:180px">Decision / Selection Required</th>
+          <th style="width:80px">Owner</th>
+          <th style="width:110px">Due Date</th>
+          <th style="width:110px">Status</th>
+          <th style="width:120px">Vendor</th>
+          <th style="width:110px">Where to Shop</th>
+          <th style="width:130px">Impact if Late</th>
+          <th style="min-width:200px">Notes & Details</th>
+        </tr>
+      </thead>
+      <tbody id="owners-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- GANTT -->
+<div id="gantt" class="panel">
+  <div class="schedule-controls">
+    <label>Zoom:</label>
+    <select id="gantt-zoom" onchange="renderGantt()">
+      <option value="day">Day</option>
+      <option value="week" selected>Week</option>
+      <option value="month">Month</option>
+    </select>
+    <label><input type="checkbox" id="gantt-show-deps" checked onchange="renderGantt()"> Show dependencies</label>
+    <label><input type="checkbox" id="gantt-show-labels" checked onchange="renderGantt()"> Show labels</label>
+    <label><input type="checkbox" id="gantt-critical" onchange="renderGantt()"> Critical path only</label>
+  </div>
+  <div class="gantt-container">
+    <div class="gantt-header">
+      <span>Gantt Chart — 166 Pinewood</span>
+      <div class="gantt-legend">
+        <span><span class="swatch" style="background:#4472c4"></span> Construction</span>
+        <span><span class="swatch" style="background:#f59e0b"></span> Confirm & Order</span>
+        <span><span class="swatch" style="background:#8b5cf6"></span> Material Receipt</span>
+        <span><span class="swatch" style="background:#ef4444"></span> Critical Path</span>
+        <span><span class="swatch" style="background:#22c55e"></span> Complete</span>
+        <span><span class="swatch" style="background:#fbbf24;border:1px solid #d97706"></span> Inspection</span>
+      </div>
+    </div>
+    <canvas id="gantt-canvas"></canvas>
+  </div>
+</div>
+
+<div class="gantt-tooltip" id="gantt-tooltip">
+  <div class="tt-title"></div>
+  <div class="tt-dates"></div>
+  <div class="tt-duration"></div>
+</div>
+
+<script>
+// ============================================================
+// DATA MODEL
+// ============================================================
+
+const PHASES = [
+  "DRY-IN & ROUGH FRAMING",
+  "ROUGH-IN (MEP)",
+  "FIREPLACE",
+  "INSULATION & DRYWALL",
+  "EXTERIOR",
+  "INTERIOR FINISHES",
+  "PAINT",
+  "MEP FINAL & SYSTEMS",
+  "SITE WORK",
+  "CLOSEOUT",
+  "FINAL MILESTONES"
+];
+
+// Task types: construction, inspection, procurement, admin, confirm, receipt, milestone
+// Dependencies: array of {id, offset} where offset is days (negative = start-to-start with lag)
+
+let tasks = [];
+let ownerDecisions = [];
+let nextId = 1;
+
+function makeId() { return nextId++; }
+
+function d(str) {
+  if (!str || str === 'TBD') return null;
+  const p = str.split('-');
+  return new Date(+p[0], +p[1]-1, +p[2]);
+}
+function fmt(dt) {
+  if (!dt) return 'TBD';
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const dd = String(dt.getDate()).padStart(2,'0');
+  return `${mm}/${dd}/${dt.getFullYear()}`;
+}
+function isoStr(dt) {
+  if (!dt) return '';
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+function addDays(dt, n) {
+  const r = new Date(dt);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+function diffDays(a, b) {
+  return Math.round((b - a) / 86400000);
+}
+function isWeekend(dt) {
+  const day = dt.getDay();
+  return day === 0 || day === 6;
+}
+function addWorkdays(dt, n) {
+  let r = new Date(dt);
+  let added = 0;
+  while (added < n) {
+    r.setDate(r.getDate() + 1);
+    if (!isWeekend(r)) added++;
+  }
+  return r;
+}
+
+// Initialize all data
+function initData() {
+  nextId = 1;
+  tasks = [];
+  ownerDecisions = [];
+
+  // Helper to add a task
+  function T(phase, stepNum, code, desc, days, predIds, startStr, status, notes, type, extraData) {
+    const id = makeId();
+    const t = {
+      id, phase, stepNum, code, desc, days,
+      predIds: predIds || [], // [{id, offset}]
+      manualStart: d(startStr),
+      status: status || 'not-started',
+      notes: notes || '',
+      type: type || 'construction',
+      ...(extraData || {})
+    };
+    // Computed fields will be set by recalc
+    t.start = t.manualStart;
+    t.finish = t.start ? addDays(t.start, Math.max(t.days - 1, 0)) : null;
+    t.slack = null;
+    t.isCritical = false;
+    tasks.push(t);
+    return id;
+  }
+
+  // Owner decision helper
+  function OD(num, desc, owner, dueDate, status, vendor, where, impact, notes) {
+    ownerDecisions.push({
+      num, desc, owner, dueDate: d(dueDate), dueDateStr: dueDate,
+      status: status || 'pending', vendor, where, impact, notes
+    });
+  }
+
+  // ---- PHASE: DRY-IN & ROUGH FRAMING ----
+  const t3000 = T("DRY-IN & ROUGH FRAMING", 3000, 'I40', 'Dry In Roof', 1, [], '2025-10-20', 'complete', '');
+  const t3025 = T("DRY-IN & ROUGH FRAMING", 3025, 'R20', 'PO RLS: DRYWALL (P)', 1, [{id:t3000,offset:0}], null, 'complete', '', 'procurement');
+  const t3100 = T("DRY-IN & ROUGH FRAMING", 3100, 'I30', 'Pre-Bat Insulation', 1, [{id:t3000,offset:0}], null, 'complete', '');
+  const t2300 = T("DRY-IN & ROUGH FRAMING", 2300, 'I78', 'Rubber Roof', 1, [], '2025-11-04', 'complete', '');
+  const t2900 = T("DRY-IN & ROUGH FRAMING", 2900, 'I35', 'Install Windows', 10, [], '2025-10-28', 'complete', '');
+  const t2950 = T("DRY-IN & ROUGH FRAMING", 2950, 'I37', 'Install Exterior Doors', 10, [], '2025-10-28', 'complete', '');
+
+  // ---- PHASE: ROUGH-IN (MEP) ----
+  const t3300 = T("ROUGH-IN (MEP)", 3300, 'I55', 'Plumbing Rough In', 3, [{id:t3100,offset:1}], null, 'complete', '');
+  const t3325 = T("ROUGH-IN (MEP)", 3325, 'I85', 'HVAC Rough In', 3, [{id:t3300,offset:-1}], null, 'complete', '');
+  const t3350 = T("ROUGH-IN (MEP)", 3350, 'Q65', 'HVAC Duct Testing', 1, [{id:t3325,offset:0}], null, 'complete', '', 'inspection');
+  const t3375 = T("ROUGH-IN (MEP)", 3375, 'I14', 'Framing Inspection', 1, [{id:t3325,offset:0}], null, 'complete', 'Passed', 'inspection');
+  const t4000 = T("ROUGH-IN (MEP)", 4000, 'I90', 'Electrical Rough In', 10, [{id:t3325,offset:-1}], null, 'complete', '');
+  const t4100 = T("ROUGH-IN (MEP)", 4100, 'I70', 'Termite Treatment', 1, [{id:t4000,offset:-1}], null, 'complete', '');
+  const t3400 = T("ROUGH-IN (MEP)", 3400, 'I57', 'Gas Lateral', 1, [{id:t3300,offset:-2}], null, 'progress', '');
+  const t4400 = T("ROUGH-IN (MEP)", 4400, 'I11', 'Call for Electrical Lateral', 1, [{id:t4000,offset:-2}], null, 'complete', 'Expected Power by 1/30');
+  const tDomCond = T("ROUGH-IN (MEP)", null, null, 'Run Dominion Conduit', 2, [], '2025-12-22', 'progress', '');
+  const tSwapMeter = T("ROUGH-IN (MEP)", null, null, 'Swap Meter Bases', 1, [], null, 'not-started', 'Awaiting Date from Will Cannon');
+  const t3965 = T("ROUGH-IN (MEP)", 3965, 'C35', 'Camera House', 1, [{id:t3300,offset:10}], null, 'complete', '');
+  const t4025 = T("ROUGH-IN (MEP)", 4025, 'V01', 'Selmo Audio/Security Wiring', 1, [{id:t3325,offset:-1}], null, 'not-started', 'Selmo providing price');
+  const t4050 = T("ROUGH-IN (MEP)", 4050, 'I92', 'Structured Wiring', 1, [{id:t4000,offset:0}], null, 'not-started', '');
+
+  // ---- PHASE: FIREPLACE ----
+  const t3125 = T("FIREPLACE", 3125, 'I65', 'Fireplace Install', 24, [{id:t3100,offset:0}], null, 'progress', '');
+  const t3250 = T("FIREPLACE", 3250, 'I63', 'Interior Door Takeoff', 1, [{id:t3125,offset:0}], null, 'complete', '');
+
+  // Owner decisions for fireplace items + auto-generated confirm/receipt tasks
+  OD(1, 'Hearth Stone Selection', 'Rebecca', '2026-03-06', 'pending', '?', 'TBD', 'Delays fireplace completion', 'Need material type AND thickness');
+  const tConfirmHearth = T("FIREPLACE", null, '🔶', '🔶 CONFIRM: Hearth Stone — Place Order', 1, [], '2026-03-07', 'not-started', 'After Rebecca selects → order from vendor; Need material & thickness', 'confirm', {vendor:'TBD', linkedDecision:'Hearth Stone Selection'});
+  const tReceiptHearth = T("FIREPLACE", null, '📦', '📦 RECEIVE: Hearth Stone', 0, [{id:tConfirmHearth,offset:0}], null, 'not-started', 'Need by 03/06/2026', 'receipt', {needByDate:d('2026-03-06'), vendor:'TBD'});
+
+  OD(2, 'Firebrick Pattern Confirmation', 'Rebecca', '2026-03-06', 'progress', 'Batchelder & Collins', 'Via Caleb', 'Delays fireplace masonry', 'RB said 12/18: 4x8 brick, rear chevron, sides/base normal — CONFIRM FINAL');
+  const tConfirmFire = T("FIREPLACE", null, '🔶', '🔶 CONFIRM: Firebrick — Place Order', 1, [], '2026-03-07', 'not-started', 'After Rebecca confirms → order from Batchelder & Collins', 'confirm', {vendor:'Batchelder & Collins', linkedDecision:'Firebrick'});
+  const tReceiptFire = T("FIREPLACE", null, '📦', '📦 RECEIVE: Firebrick', 0, [{id:tConfirmFire,offset:0}], null, 'not-started', 'Need by 03/06/2026', 'receipt', {needByDate:d('2026-03-06'), vendor:'Batchelder & Collins'});
+
+  // ---- PHASE: INSULATION & DRYWALL ----
+  const t4200 = T("INSULATION & DRYWALL", 4200, 'M17', 'Install Insulation', 3, [{id:t3375,offset:0},{id:t4000,offset:0},{id:t4100,offset:0}], null, 'not-started', 'Turman to send quote 12/8');
+  const t5000 = T("INSULATION & DRYWALL", 5000, 'M18', 'Insulation Inspection', 1, [{id:t4200,offset:0}], null, 'not-started', '', 'inspection');
+  const t5500 = T("INSULATION & DRYWALL", 5500, 'K05', 'Pay Temp Power Fee', 1, [{id:t5000,offset:0}], null, 'not-started', '', 'admin');
+  const t3925 = T("INSULATION & DRYWALL", 3925, 'I75', 'Roofing', 90, [{id:t3300,offset:0},{id:t3325,offset:0}], null, 'not-started', '');
+  const t6500 = T("INSULATION & DRYWALL", 6500, 'K10', 'Drywall Delivery', 1, [{id:t5000,offset:0},{id:t3925,offset:0}], null, 'not-started', '', 'procurement');
+  const t6700 = T("INSULATION & DRYWALL", 6700, 'K85', 'Drywall Install', 40, [{id:t6500,offset:0}], null, 'not-started', '');
+
+  // ---- PHASE: EXTERIOR ----
+  const tStone = T("EXTERIOR", null, null, 'Stone Install', 100, [], '2025-12-08', 'progress', '');
+  const t4300 = T("EXTERIOR", 4300, 'I10', 'Siding Installation', 90, [{id:t4000,offset:0}], null, 'not-started', '');
+  const t3800 = T("EXTERIOR", 3800, 'I80', 'Sewer and Water Lateral', 2, [{id:t3300,offset:0}], null, 'not-started', '');
+  const t6725 = T("EXTERIOR", 6725, 'I20', 'Garage Door', 1, [{id:t6700,offset:-6}], null, 'not-started', '');
+
+  // ---- PHASE: INTERIOR FINISHES ----
+  // Tile — owner decision + confirm + receipt
+  OD(3, 'Tile Selections (all bathrooms/areas)', 'Rebecca', '2026-03-03', 'pending', 'Tile Shop', 'Tile Shop', 'Delays tile install (3/3 start)', 'Select all tile for bathrooms, kitchen backsplash, etc.');
+  const tConfirmTile = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Tile Selections — Place Order', 1, [], '2026-03-04', 'not-started', 'After Rebecca finalizes at Tile Shop → Caleb orders', 'confirm', {vendor:'Tile Shop', linkedDecision:'Tile Selections'});
+  const tReceiptTile = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Tile Materials', 0, [{id:tConfirmTile,offset:0}], null, 'not-started', 'Need by 03/03/2026', 'receipt', {needByDate:d('2026-03-03'), vendor:'Tile Shop'});
+
+  const t7185 = T("INTERIOR FINISHES", 7185, 'M27', 'Trim Material Delivery', 1, [{id:t6700,offset:3}], null, 'not-started', '', 'procurement');
+  const t7195 = T("INTERIOR FINISHES", 7195, 'O25', 'Tile', 21, [{id:tReceiptTile,offset:0}], null, 'not-started', '');
+  const t7200 = T("INTERIOR FINISHES", 7200, 'M25', 'Trim Labor Phase 1', 35, [{id:t7195,offset:-2}], null, 'not-started', '');
+  const tTrim2 = T("INTERIOR FINISHES", null, null, 'Trim Phase 2', 18, [], '2026-03-26', 'not-started', '');
+
+  const t7170 = T("INTERIOR FINISHES", 7170, 'M19', 'Cabinet Delivery', 1, [{id:t6700,offset:0}], null, 'not-started', '', 'procurement');
+  const t7175 = T("INTERIOR FINISHES", 7175, 'M20', 'Cabinet Install', 10, [{id:t6700,offset:1},{id:t7170,offset:0}], null, 'not-started', '');
+  const t7190 = T("INTERIOR FINISHES", 7190, 'M22', 'Countertop Template', 1, [{id:t7175,offset:0}], null, 'not-started', '');
+
+  // Countertop stone — owner decision + confirm + receipt
+  OD(4, 'Countertop Stone Selection', 'Rebecca', '2026-03-13', 'progress', 'In Process', 'Richmond UMI, VB CRS Granite & Marble', 'Delays countertop template & install', 'Visit Richmond UMI and VB CRS Granite & Marble');
+  const tConfirmCtrStone = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Countertop Stone — Place Order', 1, [], '2026-03-14', 'not-started', 'After Rebecca selects slab → Caleb orders fabrication', 'confirm', {vendor:'TBD', linkedDecision:'Countertop Stone'});
+  const tReceiptCtrStone = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Countertop Stone', 0, [{id:tConfirmCtrStone,offset:0}], null, 'not-started', 'Need by 03/13/2026', 'receipt', {needByDate:d('2026-03-13'), vendor:'TBD'});
+
+  OD(5, 'Countertop Vendor Decision', 'Rebecca', '2026-03-13', 'pending', 'Signature?', 'TBD', 'Delays countertop template & install', 'Decide who will fabricate and install');
+  OD(6, 'Cabinet Hardware Selection', 'Rebecca', '2026-03-20', 'pending', '?', 'TBD', 'Delays cabinet completion', 'Rebecca to select knobs/pulls');
+  const tConfirmCabHW = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Cabinet Hardware — Place Order', 1, [], '2026-03-21', 'not-started', 'After Rebecca selects → Caleb orders', 'confirm', {vendor:'TBD', linkedDecision:'Cabinet Hardware'});
+  const tReceiptCabHW = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Cabinet Hardware', 0, [{id:tConfirmCabHW,offset:0}], null, 'not-started', 'Need by 03/20/2026', 'receipt', {needByDate:d('2026-03-20'), vendor:'TBD'});
+
+  // Wood flooring
+  OD(7, 'Wood Flooring Selection', 'Rebecca', '2026-03-20', 'pending', 'Stanton/Alison', 'Via Alison', 'Delays flooring install (3/20 start)', 'In stock; deliver to RR, 3-day lead');
+  const tConfirmFloor = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Wood Flooring — Place Order', 1, [], '2026-03-21', 'not-started', 'After Rebecca confirms → arrange delivery to RR (3-day lead)', 'confirm', {vendor:'Stanton/Alison', linkedDecision:'Wood Flooring'});
+  const tReceiptFloor = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Wood Flooring', 0, [{id:tConfirmFloor,offset:3}], null, 'not-started', 'Need by 03/20/2026; In Stock, 3-day delivery', 'receipt', {needByDate:d('2026-03-20'), vendor:'Stanton/Alison'});
+
+  // Hinges
+  OD(8, 'Hinges for Interior Doors', 'Rebecca', '2026-03-24', 'pending', 'KBM', 'Coastal Hardware', 'Delays door installation', 'Rebecca to determine style/finish');
+  const tConfirmHinge = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Door Hinges — Place Order', 1, [], '2026-03-25', 'not-started', 'After Rebecca determines at Coastal Hardware → order from KBM', 'confirm', {vendor:'KBM', linkedDecision:'Door Hinges'});
+  const tReceiptHinge = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Door Hinges', 0, [{id:tConfirmHinge,offset:0}], null, 'not-started', 'Need by 03/24/2026', 'receipt', {needByDate:d('2026-03-24'), vendor:'KBM'});
+
+  // Interior door hardware
+  OD(9, 'Interior Door Hardware (Knobs/Levers)', 'Rebecca', '2026-03-24', 'pending', 'Coastal Hardware', 'Coastal Hardware', 'Delays door hardware install', 'Rebecca selecting color/finish');
+  const tConfirmDoorHW = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Interior Door Hardware — Place Order', 1, [], '2026-03-25', 'not-started', 'After Rebecca selects color → order from Coastal Hardware', 'confirm', {vendor:'Coastal Hardware', linkedDecision:'Interior Door Hardware'});
+  const tReceiptDoorHW = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Interior Door Hardware', 0, [{id:tConfirmDoorHW,offset:0}], null, 'not-started', 'Need by 03/24/2026', 'receipt', {needByDate:d('2026-03-24'), vendor:'Coastal Hardware'});
+
+  // Paint
+  OD(10, 'Paint Color Selections (all rooms)', 'Rebecca', '2026-03-27', 'pending', 'Joe Allen', 'Joe Allen Paint', 'Delays paint start (4/6)', 'Select all interior/exterior colors');
+  const tConfirmPaint = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Paint Selections — Place Order', 1, [], '2026-03-28', 'not-started', 'After Rebecca finalizes colors → Caleb procures from Joe Allen', 'confirm', {vendor:'Joe Allen', linkedDecision:'Paint Selections'});
+  const tReceiptPaint = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Paint', 0, [{id:tConfirmPaint,offset:0}], null, 'not-started', 'Need by 03/27/2026', 'receipt', {needByDate:d('2026-03-27'), vendor:'Joe Allen'});
+
+  const t8100 = T("INTERIOR FINISHES", 8100, 'O10', 'Countertop Install', 2, [{id:t7175,offset:7}], null, 'not-started', '');
+  const t7210 = T("INTERIOR FINISHES", 7210, 'M30', 'Order Light Fixtures', 1, [{id:t7200,offset:0}], null, 'not-started', '', 'procurement');
+  const t7950 = T("INTERIOR FINISHES", 7950, 'O30', 'Deliver Light Fixtures', 1, [], '2026-02-27', 'not-started', '', 'procurement');
+  const t7225 = T("INTERIOR FINISHES", 7225, 'M45', 'Door Knob Takeoff', 1, [{id:t7200,offset:0}], null, 'not-started', '');
+
+  // Lighting
+  OD(11, 'Lighting Fixture Selections', 'Rebecca', '2026-04-20', 'progress', 'Alison', 'Via Alison', 'Delays electrical trim', '75% already in garage at S&R; finish remaining');
+  const tConfirmLight = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Lighting — Place Order (remainder)', 1, [], '2026-04-21', 'not-started', 'After Rebecca finishes selections with Alison → order remainder', 'confirm', {vendor:'Alison', linkedDecision:'Lighting'});
+  const tReceiptLight = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Lighting Fixtures', 0, [{id:tConfirmLight,offset:0}], null, 'not-started', 'Need by 04/20/2026', 'receipt', {needByDate:d('2026-04-20'), vendor:'Alison'});
+
+  // Gas Lighting
+  OD(12, 'Gas Lighting Selections', 'Rebecca', '2026-04-20', 'pending', 'Alison', 'Via Alison', 'Delays exterior lighting', 'Need ETA');
+  const tConfirmGasLight = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Gas Lighting — Place Order', 1, [], '2026-04-21', 'not-started', 'After Rebecca selects with Alison → order; Need ETA', 'confirm', {vendor:'Alison', linkedDecision:'Gas Lighting'});
+  const tReceiptGasLight = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Gas Lighting', 0, [{id:tConfirmGasLight,offset:0}], null, 'not-started', 'Need by 04/20/2026', 'receipt', {needByDate:d('2026-04-20'), vendor:'Alison'});
+
+  // Appliances
+  OD(13, 'Appliance Selections', 'Rebecca', '2026-04-24', 'pending', 'Ferguson', 'Ferguson', 'Delays appliance install', 'All kitchen and laundry appliances');
+  const tConfirmAppl = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Appliances — Place Order', 1, [], '2026-04-25', 'not-started', 'After Rebecca finalizes at Ferguson → order', 'confirm', {vendor:'Ferguson', linkedDecision:'Appliances'});
+  const tReceiptAppl = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Appliances', 0, [{id:tConfirmAppl,offset:0}], null, 'not-started', 'Need by 04/24/2026', 'receipt', {needByDate:d('2026-04-24'), vendor:'Ferguson'});
+
+  // Faucets
+  OD(14, 'Faucets & Fixtures Confirmation', 'Rebecca', '2026-04-24', 'pending', 'Ferguson', 'Ferguson', 'Delays plumbing final', 'Pool house sink (deliver by 3/16); mudroom powder sink');
+  const tConfirmFaucets = T("INTERIOR FINISHES", null, '🔶', '🔶 CONFIRM: Faucets & Fixtures — Place Order', 1, [], '2026-04-25', 'not-started', 'After Rebecca confirms → order from Ferguson', 'confirm', {vendor:'Ferguson', linkedDecision:'Faucets & Fixtures'});
+  const tReceiptFaucets = T("INTERIOR FINISHES", null, '📦', '📦 RECEIVE: Faucets & Fixtures', 0, [{id:tConfirmFaucets,offset:0}], null, 'not-started', 'Need by 04/24/2026', 'receipt', {needByDate:d('2026-04-24'), vendor:'Ferguson'});
+
+  // Flooring install depends on receipt
+  const t9419 = T("INTERIOR FINISHES", 9419, 'O80', 'Wood Flooring / LVP', 6, [{id:tReceiptFloor,offset:0}], null, 'not-started', '');
+  const t9975 = T("INTERIOR FINISHES", 9975, 'Q25', 'Carpet', 1, [{id:t9419,offset:0}], null, 'not-started', '');
+
+  // ---- PHASE: PAINT ----
+  const t7900 = T("PAINT", 7900, 'M60', 'Paint', 14, [{id:t7195,offset:0},{id:t7200,offset:1},{id:tReceiptPaint,offset:0}], null, 'not-started', 'Start when rooms/sections complete');
+
+  // ---- PHASE: MEP FINAL & SYSTEMS ----
+  const t9416 = T("MEP FINAL & SYSTEMS", 9416, 'M55', 'Gas Final', 2, [{id:t7900,offset:0}], null, 'not-started', '');
+  const t9417 = T("MEP FINAL & SYSTEMS", 9417, 'M58', 'Gas Release Inspection', 1, [{id:t9416,offset:0}], null, 'not-started', '', 'inspection');
+  const t9418 = T("MEP FINAL & SYSTEMS", 9418, 'O45', 'HVAC Startup', 1, [{id:t9417,offset:0}], null, 'not-started', '');
+  const t10100 = T("MEP FINAL & SYSTEMS", 10100, 'Q30', 'Fireplace Startup', 1, [{id:t9417,offset:0}], null, 'not-started', '');
+  const t9410 = T("MEP FINAL & SYSTEMS", 9410, 'O37', 'HVAC Trim', 3, [{id:t7900,offset:0}], null, 'not-started', '');
+  const t9415 = T("MEP FINAL & SYSTEMS", 9415, 'O35', 'Electrical Fixture/Trim', 5, [{id:t7900,offset:0},{id:tReceiptLight,offset:0}], null, 'not-started', '');
+  const t9420 = T("MEP FINAL & SYSTEMS", 9420, 'I94', 'Structured Wiring Final', 5, [{id:t9415,offset:0}], null, 'not-started', '');
+  const t9450 = T("MEP FINAL & SYSTEMS", 9450, 'Q15', 'Plumbing Final', 4, [{id:t9419,offset:0},{id:tReceiptFaucets,offset:0}], null, 'not-started', '');
+  const t9452 = T("MEP FINAL & SYSTEMS", 9452, 'Q16', 'Plumbing Stress Test', 1, [{id:t9450,offset:0}], null, 'not-started', '', 'inspection');
+  const t9455 = T("MEP FINAL & SYSTEMS", 9455, 'Q20', 'Install Appliances', 3, [{id:t9450,offset:-1},{id:tReceiptAppl,offset:0}], null, 'not-started', '');
+  const t9460 = T("MEP FINAL & SYSTEMS", 9460, 'Q50', 'Install Bath Accessories', 1, [{id:t9452,offset:0}], null, 'not-started', '');
+  const t9430 = T("MEP FINAL & SYSTEMS", 9430, 'O15', 'Door Knob Delivery', 1, [{id:t9410,offset:0},{id:tReceiptDoorHW,offset:0}], null, 'not-started', '', 'procurement');
+
+  // ---- PHASE: SITE WORK ----
+  const t6850 = T("SITE WORK", 6850, 'K45', 'Driveway', 3, [{id:t6700,offset:2}], null, 'not-started', '');
+  const t6875 = T("SITE WORK", 6875, 'K60', 'Landscape', 3, [{id:t6850,offset:0}], null, 'not-started', '');
+  const t6880 = T("SITE WORK", 6880, 'C26', 'Lot Grading As-Built', 1, [{id:t6875,offset:0}], null, 'not-started', '', 'inspection');
+
+  // Hardscape
+  OD(15, 'Hardscape Selections (pavers, patio)', 'Rebecca', 'TBD', 'pending', 'Yorktown Materials?', 'Yorktown Materials', 'Delays exterior paving', 'Select size, color, brand');
+  // Mailbox
+  OD(16, 'Select Mailbox', 'Rebecca', '2026-03-30', 'pending', '?', 'TBD', 'Delays exterior completion', 'Style, color, mounting');
+  const tConfirmMailbox = T("SITE WORK", null, '🔶', '🔶 CONFIRM: Mailbox — Place Order', 1, [], '2026-03-31', 'not-started', 'After Rebecca selects → order', 'confirm', {vendor:'TBD', linkedDecision:'Mailbox'});
+  const tReceiptMailbox = T("SITE WORK", null, '📦', '📦 RECEIVE: Mailbox', 0, [{id:tConfirmMailbox,offset:0}], null, 'not-started', 'Need by 03/30/2026', 'receipt', {needByDate:d('2026-03-30'), vendor:'TBD'});
+
+  // ---- PHASE: CLOSEOUT ----
+  // Window treatments + blinds
+  OD(17, 'Window Treatments', 'Rebecca', '2026-06-02', 'pending', '?', 'TBD', 'Delays final punch out', 'Select style, fabric, vendor');
+  OD(18, 'Blinds', 'Rebecca', '2026-06-02', 'pending', '?', 'TBD', 'Delays final punch out', 'Select style, material, vendor');
+
+  const t9465 = T("CLOSEOUT", 9465, 'O60', '1st Clean', 2, [{id:t9450,offset:1}], null, 'not-started', '');
+  const t9600 = T("CLOSEOUT", 9600, 'Q42', 'Drywall Point Up', 5, [{id:t9450,offset:0}], null, 'not-started', '');
+  const t10200 = T("CLOSEOUT", 10200, 'Q45', 'Paint Final', 30, [{id:t9600,offset:0}], null, 'not-started', '');
+  const t10250 = T("CLOSEOUT", 10250, 'Q55', '2nd Clean', 2, [{id:t10200,offset:0}], null, 'not-started', '');
+  const t10300 = T("CLOSEOUT", 10300, 'Q70', 'Punch Out', 2, [{id:t10250,offset:0}], null, 'not-started', '');
+  const t10600 = T("CLOSEOUT", 10600, 'Q57', 'QI Touchup Clean', 2, [{id:t10300,offset:0}], null, 'not-started', '');
+  const t10625 = T("CLOSEOUT", 10625, 'Q67', 'Blower Door Test', 1, [{id:t10200,offset:1}], null, 'not-started', '', 'inspection');
+  const t10650 = T("CLOSEOUT", 10650, 'Q60', 'Retail Inspection', 1, [{id:t10600,offset:1}], null, 'not-started', '', 'inspection');
+
+  // Pool/Furniture
+  OD(19, 'Pool Products & Equipment', 'Steve', '2026-05-22', 'pending', '?', 'TBD', 'Delays pool completion', 'Steve to select all pool-related products');
+  OD(20, 'Outdoor Furniture', 'Rebecca', '2026-05-22', 'pending', '?', 'TBD', 'Delays move-in readiness', 'Patio, deck, outdoor living');
+  OD(21, 'Indoor Furniture', 'Rebecca', '2026-05-22', 'pending', '?', 'TBD', 'Delays move-in readiness', 'All interior furnishings');
+
+  // ---- FINAL MILESTONES ----
+  const t10700 = T("FINAL MILESTONES", 10700, 'S05', '⭐ Final Inspection / CO', 1, [{id:t10650,offset:0}], null, 'not-started', '', 'milestone');
+  const t10800 = T("FINAL MILESTONES", 10800, 'S10', '⭐ PROJECT COMPLETE', 1, [{id:t10700,offset:0}], null, 'not-started', '', 'milestone');
+
+  recalcAll();
+}
+
+// ============================================================
+// DEPENDENCY ENGINE — Forward pass scheduling
+// ============================================================
+function recalcAll() {
+  const taskMap = {};
+  tasks.forEach(t => taskMap[t.id] = t);
+
+  // Topological sort
+  const visited = new Set();
+  const sorted = [];
+  function visit(id) {
+    if (visited.has(id)) return;
+    visited.add(id);
+    const t = taskMap[id];
+    if (!t) return;
+    for (const dep of t.predIds) {
+      if (taskMap[dep.id]) visit(dep.id);
+    }
+    sorted.push(id);
+  }
+  tasks.forEach(t => visit(t.id));
+
+  // Forward pass: calculate earliest start
+  for (const id of sorted) {
+    const t = taskMap[id];
+    if (t.predIds.length === 0) {
+      // No predecessors — use manual start
+      t.start = t.manualStart || new Date();
+    } else {
+      let latest = null;
+      for (const dep of t.predIds) {
+        const pred = taskMap[dep.id];
+        if (!pred || !pred.finish) continue;
+        let depDate;
+        if (dep.offset < 0) {
+          // Start-to-start with lag: start = pred.start + |offset| days
+          depDate = addDays(pred.start, Math.abs(dep.offset));
+        } else {
+          // Finish-to-start with lag: start = pred.finish + offset days
+          depDate = addDays(pred.finish, dep.offset);
+        }
+        if (!latest || depDate > latest) latest = depDate;
+      }
+      // If we have a manual start that's later, use that (for tasks with both deps and manual)
+      if (t.manualStart && (!latest || t.manualStart > latest)) {
+        t.start = t.manualStart;
+      } else {
+        t.start = latest || t.manualStart || new Date();
+      }
+    }
+    t.finish = t.start ? addDays(t.start, Math.max(t.days - 1, 0)) : null;
+    if (t.days === 0 && t.start) t.finish = new Date(t.start);
+  }
+
+  // Backward pass: calculate latest start/finish and slack
+  const projectEnd = tasks.reduce((max, t) => {
+    if (t.finish && (!max || t.finish > max)) return t.finish;
+    return max;
+  }, null);
+
+  // Build successor map
+  const successors = {};
+  tasks.forEach(t => { successors[t.id] = []; });
+  tasks.forEach(t => {
+    for (const dep of t.predIds) {
+      if (successors[dep.id]) successors[dep.id].push(t.id);
+    }
+  });
+
+  // Late finish initialized to project end
+  tasks.forEach(t => { t.lateFinish = projectEnd; t.lateStart = null; });
+
+  // Process in reverse topological order
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const t = taskMap[sorted[i]];
+    const succs = successors[t.id];
+    if (succs.length > 0) {
+      let earliest = null;
+      for (const sid of succs) {
+        const s = taskMap[sid];
+        // Find the specific dependency link
+        const link = s.predIds.find(p => p.id === t.id);
+        let depDate;
+        if (link && link.offset < 0) {
+          depDate = addDays(s.lateStart || s.start, -Math.abs(link.offset));
+        } else {
+          depDate = addDays(s.lateStart || s.start, -(link ? link.offset : 0));
+        }
+        if (!earliest || depDate < earliest) earliest = depDate;
+      }
+      t.lateFinish = earliest || t.lateFinish;
+    }
+    t.lateStart = addDays(t.lateFinish, -Math.max(t.days - 1, 0));
+    t.slack = t.start && t.lateStart ? diffDays(t.start, t.lateStart) : null;
+    t.isCritical = t.slack !== null && t.slack <= 0;
+  }
+
+  document.getElementById('save-status').textContent = 'Recalculated ✓';
+  document.getElementById('save-status').className = 'status';
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function renderAll() {
+  renderDashboard();
+  renderSchedule();
+  renderOwners();
+  renderGantt();
+  updateHeaderCompletion();
+}
+
+function updateHeaderCompletion() {
+  const total = tasks.filter(t => t.type !== 'milestone').length;
+  const done = tasks.filter(t => t.status === 'complete' && t.type !== 'milestone').length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('project-completion-header').textContent = `${pct}% Complete (${done}/${total} tasks)`;
+
+  const pendingDecisions = ownerDecisions.filter(od => od.status !== 'complete').length;
+  document.getElementById('owner-badge').textContent = pendingDecisions;
+}
+
+// ---- DASHBOARD ----
+function renderDashboard() {
+  const panel = document.getElementById('dashboard');
+  const total = tasks.filter(t => t.type !== 'milestone').length;
+  const done = tasks.filter(t => t.status === 'complete' && t.type !== 'milestone').length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const pendingDec = ownerDecisions.filter(od => od.status !== 'complete').length;
+  const totalDec = ownerDecisions.length;
+  const overdue = tasks.filter(t => t.status !== 'complete' && t.finish && t.finish < new Date()).length;
+
+  const inspections = tasks.filter(t => t.type === 'inspection');
+  const inspPassed = inspections.filter(t => t.status === 'complete').length;
+
+  // Upcoming owner decisions (sorted by date)
+  const upcomingDec = ownerDecisions
+    .filter(od => od.status !== 'complete' && od.dueDate)
+    .sort((a,b) => a.dueDate - b.dueDate)
+    .slice(0, 8);
+
+  // Milestones
+  const milestones = tasks.filter(t => t.type === 'inspection' || t.type === 'milestone')
+    .sort((a,b) => (a.start||0) - (b.start||0));
+
+  panel.innerHTML = `
+    <div class="dash-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Construction Progress</div>
+        <div class="kpi-value">${pct}%</div>
+        <div class="kpi-sub">${done} of ${total} tasks complete</div>
+      </div>
+      <div class="kpi-card ${pendingDec > 10 ? 'highlight' : ''}">
+        <div class="kpi-label">Owner Decisions Pending</div>
+        <div class="kpi-value">${pendingDec}</div>
+        <div class="kpi-sub">of ${totalDec} total decisions</div>
+      </div>
+      <div class="kpi-card ${overdue > 0 ? 'highlight' : ''}">
+        <div class="kpi-label">Overdue Tasks</div>
+        <div class="kpi-value">${overdue}</div>
+        <div class="kpi-sub">past scheduled finish</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Inspections Passed</div>
+        <div class="kpi-value">${inspPassed}/${inspections.length}</div>
+        <div class="kpi-sub">milestones</div>
+      </div>
+    </div>
+    <div class="dash-cols">
+      <div class="dash-section">
+        <div class="dash-section-header red">⚠️ Upcoming Owner Deadlines</div>
+        ${upcomingDec.map(od => `
+          <div class="dash-row">
+            <span class="label">${od.desc}</span>
+            <span class="date">${fmt(od.dueDate)}</span>
+            <span class="owner-badge ${od.owner.toLowerCase()}">${od.owner}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="dash-section">
+        <div class="dash-section-header navy">⭐ Milestones & Inspections</div>
+        ${milestones.map(t => `
+          <div class="dash-row">
+            <span class="label">${t.desc}</span>
+            <span class="date">${fmt(t.start)}</span>
+            <span class="status-pill ${t.status === 'complete' ? 'complete' : t.start && t.start < new Date() ? 'progress' : 'upcoming'}">
+              ${t.status === 'complete' ? '✅ Passed' : '⬜ Upcoming'}
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ---- SCHEDULE TABLE ----
+function renderSchedule() {
+  const tbody = document.getElementById('schedule-body');
+  const phaseFilter = document.getElementById('filter-phase').value;
+  const statusFilter = document.getElementById('filter-status').value;
+  const typeFilter = document.getElementById('filter-type').value;
+  const search = document.getElementById('filter-search').value.toLowerCase();
+  const showComplete = document.getElementById('show-complete').checked;
+  const highlightCritical = document.getElementById('highlight-critical').checked;
+
+  // Populate phase filter
+  const phaseSelect = document.getElementById('filter-phase');
+  if (phaseSelect.options.length <= 1) {
+    PHASES.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      phaseSelect.appendChild(opt);
+    });
+  }
+
+  let html = '';
+  let currentPhase = '';
+
+  for (const t of tasks) {
+    // Filters
+    if (phaseFilter !== 'all' && t.phase !== phaseFilter) continue;
+    if (statusFilter !== 'all' && t.status !== statusFilter) continue;
+    if (typeFilter !== 'all' && t.type !== typeFilter) continue;
+    if (search && !t.desc.toLowerCase().includes(search) && !(t.notes||'').toLowerCase().includes(search)) continue;
+    if (!showComplete && t.status === 'complete') continue;
+
+    // Phase header
+    if (t.phase !== currentPhase) {
+      currentPhase = t.phase;
+      html += `<tr class="phase-header"><td colspan="10">▸ ${currentPhase}</td></tr>`;
+    }
+
+    const rowClass = [
+      t.type === 'confirm' ? 'confirm-row' : '',
+      t.type === 'receipt' ? 'receipt-row' : '',
+      t.type === 'milestone' ? 'milestone-row' : '',
+      t.status === 'complete' ? 'complete-row' : '',
+      highlightCritical && t.isCritical ? 'critical-path' : ''
+    ].filter(Boolean).join(' ');
+
+    const statusOptions = ['complete','progress','not-started','overdue'];
+    const statusLabels = {'complete':'✅ Complete','progress':'🔄 In Progress','not-started':'⬜ Not Started','overdue':'🔴 Overdue'};
+    const statusLabel = statusLabels[t.status] || t.status;
+
+    const typeBadge = {
+      construction: '<span class="task-type-badge construction">Build</span>',
+      inspection: '<span class="task-type-badge inspection">Inspect</span>',
+      procurement: '<span class="task-type-badge procurement">Procure</span>',
+      admin: '<span class="task-type-badge admin">Admin</span>',
+      confirm: '<span class="task-type-badge confirm">🔶 Order</span>',
+      receipt: '<span class="task-type-badge receipt">📦 Receive</span>',
+      milestone: '<span class="task-type-badge milestone">⭐ Milestone</span>',
+    }[t.type] || '';
+
+    html += `<tr class="${rowClass}" data-id="${t.id}">
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--slate)">${t.stepNum || ''}</td>
+      <td>
+        <strong>${t.desc}</strong>
+        ${t.vendor ? `<br><span style="font-size:0.75rem;color:var(--slate)">Vendor: ${t.vendor}</span>` : ''}
+      </td>
+      <td class="editable" onclick="editDays(${t.id}, this)" style="text-align:center;font-family:'JetBrains Mono',monospace">${t.days}</td>
+      <td style="font-size:0.75rem">${t.predIds.map(p => {
+        const pt = tasks.find(x=>x.id===p.id);
+        return `<span class="dep-tag">${pt ? (pt.stepNum || pt.id) : p.id}${p.offset ? (p.offset>0?'+':'')+p.offset+'d' : ''}</span>`;
+      }).join('')}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem">${fmt(t.start)}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem">${fmt(t.finish)}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:${t.slack!==null&&t.slack<=0?'var(--red)':'var(--slate)'}">${t.slack !== null ? t.slack : ''}</td>
+      <td>
+        <select onchange="updateStatus(${t.id}, this.value)" style="font-size:0.78rem;padding:3px 6px;border-radius:4px;border:1px solid var(--border)">
+          ${statusOptions.map(s => `<option value="${s}" ${t.status===s?'selected':''}>${statusLabels[s]}</option>`).join('')}
+        </select>
+      </td>
+      <td>${typeBadge}</td>
+      <td class="editable" onclick="editNotes(${t.id}, this)" style="font-size:0.8rem;color:var(--slate-dark);max-width:200px">${t.notes || '<span style=color:var(--border)>click to edit</span>'}</td>
+    </tr>`;
+  }
+
+  tbody.innerHTML = html;
+}
+
+// ---- OWNER DECISIONS TABLE ----
+function renderOwners() {
+  const tbody = document.getElementById('owners-body');
+  const statusLabels = {'complete':'✅ Decision Made','progress':'🟡 In Progress','pending':'⬜ Pending','overdue':'🔴 OVERDUE'};
+  const statusOptions = ['complete','progress','pending','overdue'];
+
+  // Group by section using a category field or index ranges
+  const interior = ownerDecisions.filter(od => od.num <= 14 || (!od._section && od.num <= 14));
+  const exterior = ownerDecisions.filter(od => od.num >= 15 && od.num <= 18);
+  const accessories = ownerDecisions.filter(od => od.num >= 19);
+  // For newly added decisions, append to interior by default
+  const extra = ownerDecisions.filter(od => od.num > 21);
+
+  let sections = [
+    {title:'INTERIOR DECISIONS', items: ownerDecisions.filter(od => od.num <= 14)},
+    {title:'EXTERIOR DECISIONS', items: ownerDecisions.filter(od => od.num >= 15 && od.num <= 16)},
+    {title:'ACCESSORIES & FURNISHINGS', items: ownerDecisions.filter(od => od.num >= 17 && od.num <= 21)},
+  ];
+  // Any decisions with num > 21 go into a new section
+  const added = ownerDecisions.filter(od => od.num > 21);
+  if (added.length > 0) {
+    sections.push({title:'ADDITIONAL DECISIONS', items: added});
+  }
+
+  let html = '';
+  let rowNum = 0;
+  for (const sec of sections) {
+    html += `<tr class="phase-header"><td colspan="9">▸ ${sec.title}</td></tr>`;
+    for (const od of sec.items) {
+      rowNum++;
+      html += `<tr>
+        <td style="text-align:center">${rowNum}</td>
+        <td><strong>${od.desc}</strong></td>
+        <td style="text-align:center">
+          <span class="owner-badge ${od.owner.toLowerCase()}">${od.owner}</span>
+        </td>
+        <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--red)">${fmt(od.dueDate)}</td>
+        <td>
+          <select onchange="updateOwnerStatus(${od.num}, this.value)" style="font-size:0.78rem;padding:3px 6px;border-radius:4px;border:1px solid var(--border)">
+            ${statusOptions.map(s => `<option value="${s}" ${od.status===s?'selected':''}>${statusLabels[s]}</option>`).join('')}
+          </select>
+        </td>
+        <td style="font-size:0.8rem">${od.vendor || ''}</td>
+        <td style="font-size:0.8rem">${od.where || ''}</td>
+        <td style="font-size:0.8rem;color:var(--red)">${od.impact || ''}</td>
+        <td class="editable" onclick="editOwnerNotes(${od.num}, this)" style="font-size:0.8rem;max-width:280px;background:${od.notes ? '#fffef5' : '#fff'}">
+          ${od.notes
+            ? `<span style="color:var(--text)">${od.notes}</span>`
+            : `<span style="color:#ccc;font-style:italic">+ add notes</span>`}
+        </td>
+      </tr>`;
+    }
+  }
+  tbody.innerHTML = html;
+}
+
+// ---- GANTT CHART ----
+function renderGantt() {
+  const canvas = document.getElementById('gantt-canvas');
+  const ctx = canvas.getContext('2d');
+  const zoom = document.getElementById('gantt-zoom').value;
+  const showDeps = document.getElementById('gantt-show-deps').checked;
+  const showLabels = document.getElementById('gantt-show-labels').checked;
+  const criticalOnly = document.getElementById('gantt-critical').checked;
+
+  let filtered = criticalOnly ? tasks.filter(t => t.isCritical) : tasks.filter(t => t.start);
+  if (filtered.length === 0) filtered = tasks.filter(t => t.start);
+
+  // Find date range
+  let minDate = null, maxDate = null;
+  filtered.forEach(t => {
+    if (t.start && (!minDate || t.start < minDate)) minDate = t.start;
+    if (t.finish && (!maxDate || t.finish > maxDate)) maxDate = t.finish;
+  });
+  if (!minDate || !maxDate) return;
+
+  minDate = addDays(minDate, -7);
+  maxDate = addDays(maxDate, 14);
+
+  const totalDays = diffDays(minDate, maxDate);
+  const rowH = 26;
+  const labelW = 260;
+  const headerH = 50;
+  const dayW = zoom === 'day' ? 18 : zoom === 'week' ? 4 : 1.2;
+  const chartW = totalDays * dayW;
+  const totalW = labelW + chartW + 20;
+  const totalH = headerH + filtered.length * rowH + 20;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = totalW * dpr;
+  canvas.height = totalH * dpr;
+  canvas.style.width = totalW + 'px';
+  canvas.style.height = totalH + 'px';
+  ctx.scale(dpr, dpr);
+
+  // Background
+  ctx.fillStyle = '#fafbfc';
+  ctx.fillRect(0, 0, totalW, totalH);
+
+  // Header
+  ctx.fillStyle = '#1a2744';
+  ctx.fillRect(0, 0, totalW, headerH);
+
+  // Date headers
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let prevMonth = -1;
+  for (let i = 0; i < totalDays; i++) {
+    const dt = addDays(minDate, i);
+    const x = labelW + i * dayW;
+
+    // Weekend shading
+    if (dt.getDay() === 0 || dt.getDay() === 6) {
+      ctx.fillStyle = 'rgba(0,0,0,0.03)';
+      ctx.fillRect(x, headerH, dayW, totalH);
+    }
+
+    // Month labels
+    if (dt.getMonth() !== prevMonth) {
+      prevMonth = dt.getMonth();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillText(`${months[dt.getMonth()]} ${dt.getFullYear()}`, x + 30, 18);
+    }
+
+    // Day/week markers
+    if (zoom === 'day' && dt.getDate() % 5 === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText(dt.getDate(), x, 38);
+      ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+      ctx.beginPath(); ctx.moveTo(x, headerH); ctx.lineTo(x, totalH); ctx.stroke();
+    } else if (zoom === 'week' && dt.getDay() === 1) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+      ctx.beginPath(); ctx.moveTo(x, headerH); ctx.lineTo(x, totalH); ctx.stroke();
+    }
+  }
+
+  // Today line
+  const today = new Date();
+  if (today >= minDate && today <= maxDate) {
+    const todayX = labelW + diffDays(minDate, today) * dayW;
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(todayX, headerH); ctx.lineTo(todayX, totalH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#ef4444';
+    ctx.font = 'bold 9px "DM Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('TODAY', todayX, headerH + 12);
+  }
+
+  // Task bars
+  const barColors = {
+    construction: '#4472c4',
+    inspection: '#f59e0b',
+    procurement: '#6366f1',
+    admin: '#6b7280',
+    confirm: '#f97316',
+    receipt: '#8b5cf6',
+    milestone: '#1d4ed8'
+  };
+
+  // Store bar positions for hover
+  canvas._barPositions = [];
+
+  filtered.forEach((t, i) => {
+    const y = headerH + i * rowH;
+
+    // Row label
+    ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+    ctx.fillRect(0, y, labelW, rowH);
+
+    ctx.font = '10px "DM Sans", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = t.type === 'confirm' ? '#c2410c' : t.type === 'receipt' ? '#6b21a8' : '#374151';
+    const label = t.desc.length > 35 ? t.desc.substring(0, 35) + '…' : t.desc;
+    ctx.fillText(label, 8, y + rowH/2 + 4);
+
+    // Bar
+    if (t.start && t.finish) {
+      const barX = labelW + diffDays(minDate, t.start) * dayW;
+      const barW = Math.max(diffDays(t.start, t.finish) * dayW + dayW, 4);
+      const barY = y + 5;
+      const barH = rowH - 10;
+
+      let color = barColors[t.type] || '#4472c4';
+      if (t.status === 'complete') color = '#22c55e';
+      if (t.isCritical && t.status !== 'complete') color = '#ef4444';
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barW, barH, 3);
+      ctx.fill();
+
+      // Progress fill for in-progress tasks
+      if (t.status === 'progress') {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath();
+        ctx.roundRect(barX + barW * 0.5, barY, barW * 0.5, barH, [0,3,3,0]);
+        ctx.fill();
+      }
+
+      if (showLabels && barW > 40) {
+        ctx.fillStyle = '#fff';
+        ctx.font = '9px "DM Sans", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${t.days}d`, barX + 4, barY + barH/2 + 3);
+      }
+
+      canvas._barPositions.push({x: barX, y: barY, w: barW, h: barH, task: t});
+    }
+  });
+
+  // Dependencies
+  if (showDeps) {
+    ctx.strokeStyle = 'rgba(100,116,139,0.3)';
+    ctx.lineWidth = 1;
+    const filteredIds = new Set(filtered.map(t => t.id));
+    filtered.forEach((t, ti) => {
+      for (const dep of t.predIds) {
+        const pi = filtered.findIndex(x => x.id === dep.id);
+        if (pi === -1) continue;
+        const pred = filtered[pi];
+        if (!pred.finish || !t.start) continue;
+
+        const fromX = labelW + diffDays(minDate, pred.finish) * dayW + dayW;
+        const fromY = headerH + pi * rowH + rowH/2;
+        const toX = labelW + diffDays(minDate, t.start) * dayW;
+        const toY = headerH + ti * rowH + rowH/2;
+
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(fromX + 6, fromY);
+        ctx.lineTo(fromX + 6, toY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+
+        // Arrow
+        ctx.fillStyle = 'rgba(100,116,139,0.4)';
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - 4, toY - 3);
+        ctx.lineTo(toX - 4, toY + 3);
+        ctx.fill();
+      }
+    });
+  }
+
+  // Tooltip handler
+  canvas.onmousemove = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const tooltip = document.getElementById('gantt-tooltip');
+    let found = false;
+    for (const bp of canvas._barPositions) {
+      if (mx >= bp.x && mx <= bp.x + bp.w && my >= bp.y && my <= bp.y + bp.h) {
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 10) + 'px';
+        tooltip.style.top = (e.clientY - 40) + 'px';
+        tooltip.querySelector('.tt-title').textContent = bp.task.desc;
+        tooltip.querySelector('.tt-dates').textContent = `${fmt(bp.task.start)} → ${fmt(bp.task.finish)}`;
+        tooltip.querySelector('.tt-duration').textContent = `${bp.task.days} days | Slack: ${bp.task.slack ?? 'N/A'} days${bp.task.isCritical ? ' | 🔴 CRITICAL PATH' : ''}`;
+        found = true;
+        break;
+      }
+    }
+    if (!found) tooltip.style.display = 'none';
+  };
+  canvas.onmouseleave = () => { document.getElementById('gantt-tooltip').style.display = 'none'; };
+}
+
+// ============================================================
+// EDITING
+// ============================================================
+function editDays(id, td) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const current = t.days;
+  td.innerHTML = `<input type="number" value="${current}" min="0" max="365" onblur="saveDays(${id}, this)" onkeydown="if(event.key==='Enter')this.blur()">`;
+  td.querySelector('input').focus();
+}
+
+function saveDays(id, input) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  t.days = parseInt(input.value) || 0;
+  recalcAll();
+  renderSchedule();
+  renderGantt();
+  renderDashboard();
+  markUnsaved();
+}
+
+function editNotes(id, td) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  td.innerHTML = `<input type="text" value="${t.notes||''}" onblur="saveNotes(${id}, this)" onkeydown="if(event.key==='Enter')this.blur()">`;
+  td.querySelector('input').focus();
+}
+
+function saveNotes(id, input) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  t.notes = input.value;
+  renderSchedule();
+  markUnsaved();
+}
+
+function updateStatus(id, val) {
+  const t = tasks.find(x => x.id === id);
+  if (t) { t.status = val; renderAll(); markUnsaved(); }
+}
+
+function updateOwnerStatus(num, val) {
+  const od = ownerDecisions.find(x => x.num === num);
+  if (od) { od.status = val; renderAll(); markUnsaved(); }
+}
+
+function editOwnerNotes(num, td) {
+  const od = ownerDecisions.find(x => x.num === num);
+  if (!od) return;
+  td.innerHTML = `<input type="text" value="${(od.notes||'').replace(/"/g, '&quot;')}" onblur="saveOwnerNotes(${num}, this)" onkeydown="if(event.key==='Enter')this.blur()" style="width:100%">`;
+  td.querySelector('input').focus();
+}
+
+function saveOwnerNotes(num, input) {
+  const od = ownerDecisions.find(x => x.num === num);
+  if (!od) return;
+  od.notes = input.value;
+  renderOwners();
+  markUnsaved();
+}
+
+function markUnsaved() {
+  debouncedSave();
+}
+
+// ============================================================
+// FIREBASE REAL-TIME DATABASE — all users see the same data
+// ============================================================
+// ⚠️ SETUP REQUIRED: Replace the config below with YOUR Firebase config.
+// See the SETUP-GUIDE.md file for step-by-step instructions.
+const firebaseConfig = {
+  apiKey: "AIzaSyDkO7zdfUXx9ahmXqX_eI_ke7_iXYrUJMc",
+  authDomain: "pinewood-166.firebaseapp.com",
+  databaseURL: "https://pinewood-166-default-rtdb.firebaseio.com",
+  projectId: "pinewood-166",
+  storageBucket: "pinewood-166.firebasestorage.app",
+  messagingSenderId: "946653657310",
+  appId: "1:946653657310:web:ff5062f7f0db322f8cea4f"
+};
+
+let firebaseReady = false;
+let dbRef = null;
+let saveTimeout = null;
+let isLoadingFromServer = false;
+
+function initFirebase() {
+  if (FIREBASE_CONFIG.apiKey === "YOUR_API_KEY_HERE") {
+    document.getElementById('save-status').textContent = '⚠️ Firebase not configured — see SETUP-GUIDE.md';
+    document.getElementById('save-status').className = 'status unsaved';
+    document.getElementById('save-status').style.fontSize = '0.75rem';
+    console.warn('Firebase not configured. Data will not sync between users. Follow SETUP-GUIDE.md to enable.');
+    return false;
+  }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    dbRef = firebase.database().ref('pinewood166');
+    firebaseReady = true;
+
+    // Listen for real-time changes from ANY user
+    dbRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data || isLoadingFromServer) return;
+      isLoadingFromServer = true;
+      try {
+        tasks = JSON.parse(data.tasks, dateReviver);
+        ownerDecisions = JSON.parse(data.ownerDecisions, dateReviver);
+        nextId = data.nextId || tasks.length + 100;
+        recalcAll();
+        renderAll();
+        document.getElementById('save-status').textContent = '✓ Synced ' + new Date().toLocaleTimeString();
+        document.getElementById('save-status').className = 'status';
+      } catch(e) { console.error('Parse error:', e); }
+      isLoadingFromServer = false;
+    });
+
+    document.getElementById('save-status').textContent = '✓ Connected';
+    document.getElementById('save-status').className = 'status';
+    return true;
+  } catch(err) {
+    console.error('Firebase init failed:', err);
+    document.getElementById('save-status').textContent = '⚠ Connection failed';
+    document.getElementById('save-status').className = 'status unsaved';
+    return false;
+  }
+}
+
+function dateReplacer(key, val) {
+  if (val instanceof Date) return { __date: val.toISOString() };
+  return val;
+}
+function dateReviver(key, val) {
+  if (val && val.__date) return new Date(val.__date);
+  return val;
+}
+
+function autoSave() {
+  if (!firebaseReady || !dbRef) {
+    // Fallback: save to localStorage if Firebase isn't configured
+    try {
+      localStorage.setItem('pinewood166-local', JSON.stringify({tasks, ownerDecisions, nextId}, dateReplacer));
+      document.getElementById('save-status').textContent = '✓ Saved locally ' + new Date().toLocaleTimeString();
+    } catch(e) {}
+    return;
+  }
+  isLoadingFromServer = true; // Prevent our own write from re-triggering a render
+  dbRef.set({
+    tasks: JSON.stringify(tasks, dateReplacer),
+    ownerDecisions: JSON.stringify(ownerDecisions, dateReplacer),
+    nextId: nextId,
+    savedAt: new Date().toISOString()
+  }).then(() => {
+    document.getElementById('save-status').textContent = '✓ Saved ' + new Date().toLocaleTimeString();
+    document.getElementById('save-status').className = 'status';
+    isLoadingFromServer = false;
+  }).catch((err) => {
+    console.error('Save failed:', err);
+    document.getElementById('save-status').textContent = '⚠ Save failed';
+    document.getElementById('save-status').className = 'status unsaved';
+    isLoadingFromServer = false;
+  });
+}
+
+function debouncedSave() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  document.getElementById('save-status').textContent = '● Saving...';
+  document.getElementById('save-status').className = 'status unsaved';
+  saveTimeout = setTimeout(autoSave, 600);
+}
+
+function loadLocalFallback() {
+  try {
+    const raw = localStorage.getItem('pinewood166-local');
+    if (raw) {
+      const data = JSON.parse(raw, dateReviver);
+      if (data.tasks && data.tasks.length > 0) {
+        tasks = data.tasks;
+        ownerDecisions = data.ownerDecisions || [];
+        nextId = data.nextId || tasks.length + 100;
+        recalcAll();
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function resetToDefaults() {
+  if (!confirm('This will reset ALL data back to the original schedule for ALL users. Are you sure?')) return;
+  initData();
+  renderAll();
+  autoSave();
+}
+
+// ============================================================
+// TAB NAVIGATION
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'gantt') setTimeout(renderGantt, 50);
+  });
+});
+
+// ============================================================
+// MODALS — Add Task / Add Decision
+// ============================================================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+// Click outside modal to close
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal-overlay') && e.target.classList.contains('open')) {
+    e.target.classList.remove('open');
+  }
+});
+
+function openAddTaskModal() {
+  // Populate phase dropdown
+  const phaseSelect = document.getElementById('at-phase');
+  phaseSelect.innerHTML = PHASES.map(p => `<option value="${p}">${p}</option>`).join('');
+  // Populate predecessor dropdown
+  const predSelect = document.getElementById('at-pred');
+  predSelect.innerHTML = '<option value="">None — use start date above</option>' +
+    tasks.map(t => `<option value="${t.id}">${t.stepNum || t.id} — ${t.desc.substring(0,45)}</option>`).join('');
+  // Clear form
+  document.getElementById('at-desc').value = '';
+  document.getElementById('at-days').value = '1';
+  document.getElementById('at-start').value = '';
+  document.getElementById('at-vendor').value = '';
+  document.getElementById('at-notes').value = '';
+  document.getElementById('at-status').value = 'not-started';
+  document.getElementById('at-type').value = 'construction';
+  openModal('modal-task');
+}
+
+function submitAddTask() {
+  const desc = document.getElementById('at-desc').value.trim();
+  if (!desc) { alert('Please enter a task description.'); return; }
+  const days = parseInt(document.getElementById('at-days').value) || 0;
+  const phase = document.getElementById('at-phase').value;
+  const type = document.getElementById('at-type').value;
+  const status = document.getElementById('at-status').value;
+  const startStr = document.getElementById('at-start').value;
+  const predId = document.getElementById('at-pred').value;
+  const vendor = document.getElementById('at-vendor').value.trim();
+  const notes = document.getElementById('at-notes').value.trim();
+
+  const id = makeId();
+  const t = {
+    id, phase, stepNum: null, code: null, desc, days,
+    predIds: predId ? [{id: parseInt(predId), offset: 0}] : [],
+    manualStart: startStr ? d(startStr) : null,
+    status, notes, type,
+    start: null, finish: null, slack: null, isCritical: false
+  };
+  if (vendor) t.vendor = vendor;
+  tasks.push(t);
+  recalcAll();
+  renderAll();
+  markUnsaved();
+  closeModal('modal-task');
+}
+
+function openAddDecisionModal() {
+  document.getElementById('ad-desc').value = '';
+  document.getElementById('ad-owner').value = 'Rebecca';
+  document.getElementById('ad-due').value = '';
+  document.getElementById('ad-vendor').value = '';
+  document.getElementById('ad-where').value = '';
+  document.getElementById('ad-impact').value = '';
+  document.getElementById('ad-needby').value = '';
+  document.getElementById('ad-notes').value = '';
+  openModal('modal-decision');
+}
+
+function submitAddDecision() {
+  const desc = document.getElementById('ad-desc').value.trim();
+  const dueStr = document.getElementById('ad-due').value;
+  if (!desc || !dueStr) { alert('Please enter a description and due date.'); return; }
+  const owner = document.getElementById('ad-owner').value;
+  const vendor = document.getElementById('ad-vendor').value.trim();
+  const where = document.getElementById('ad-where').value.trim();
+  const impact = document.getElementById('ad-impact').value.trim();
+  const needbyStr = document.getElementById('ad-needby').value;
+  const notes = document.getElementById('ad-notes').value.trim();
+
+  const num = ownerDecisions.length > 0 ? Math.max(...ownerDecisions.map(x=>x.num)) + 1 : 1;
+  ownerDecisions.push({
+    num, desc, owner, dueDate: d(dueStr), dueDateStr: dueStr,
+    status: 'pending', vendor: vendor || '?', where: where || 'TBD',
+    impact, notes
+  });
+
+  // Auto-create Confirm & Order task (1 day after due date)
+  const confirmDate = addDays(d(dueStr), 1);
+  const confirmId = makeId();
+  const confirmTask = {
+    id: confirmId,
+    phase: 'INTERIOR FINISHES',
+    stepNum: null, code: '🔶',
+    desc: `🔶 CONFIRM: ${desc} — Place Order`,
+    days: 1,
+    predIds: [],
+    manualStart: confirmDate,
+    status: 'not-started',
+    notes: `After ${owner} selects → Caleb orders${vendor ? ' from ' + vendor : ''}`,
+    type: 'confirm',
+    vendor: vendor || 'TBD',
+    linkedDecision: desc,
+    start: null, finish: null, slack: null, isCritical: false
+  };
+  tasks.push(confirmTask);
+
+  // Auto-create Material Receipt task
+  const receiptId = makeId();
+  const needByDate = needbyStr ? d(needbyStr) : d(dueStr);
+  const receiptTask = {
+    id: receiptId,
+    phase: 'INTERIOR FINISHES',
+    stepNum: null, code: '📦',
+    desc: `📦 RECEIVE: ${desc}`,
+    days: 0,
+    predIds: [{id: confirmId, offset: 0}],
+    manualStart: null,
+    status: 'not-started',
+    notes: `Need by ${fmt(needByDate)}`,
+    type: 'receipt',
+    vendor: vendor || 'TBD',
+    needByDate: needByDate,
+    start: null, finish: null, slack: null, isCritical: false
+  };
+  tasks.push(receiptTask);
+
+  recalcAll();
+  renderAll();
+  markUnsaved();
+  closeModal('modal-decision');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  // Try Firebase first
+  const fbOk = initFirebase();
+
+  if (!fbOk) {
+    // Firebase not configured — use local storage fallback
+    if (!loadLocalFallback()) {
+      initData();
+    }
+    renderAll();
+  } else {
+    // Firebase is connected — it will load data via the 'value' listener.
+    // But we need initial data in case the database is empty.
+    dbRef.once('value').then((snapshot) => {
+      if (!snapshot.val()) {
+        // Database is empty — seed it with the default schedule
+        initData();
+        renderAll();
+        autoSave();
+      }
+    });
+  }
+});
+
+// Polyfill roundRect
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'number') r = [r, r, r, r];
+    this.moveTo(x + r[0], y);
+    this.lineTo(x + w - r[1], y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+    this.lineTo(x + w, y + h - r[2]);
+    this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+    this.lineTo(x + r[3], y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+    this.lineTo(x, y + r[0]);
+    this.quadraticCurveTo(x, y, x + r[0], y);
+    this.closePath();
+  };
+}
+</script>
+<!-- ADD TASK MODAL -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <div class="modal-header">
+      <span>Add Task to Caleb's Schedule</span>
+      <button onclick="closeModal('modal-task')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Task Description *</label>
+        <input type="text" id="at-desc" placeholder="e.g., Install Bathroom Vanities">
+      </div>
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>Duration (days) *</label>
+          <input type="number" id="at-days" value="1" min="0" max="365">
+        </div>
+        <div class="form-row">
+          <label>Phase</label>
+          <select id="at-phase"></select>
+        </div>
+      </div>
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>Task Type</label>
+          <select id="at-type">
+            <option value="construction">Construction</option>
+            <option value="procurement">Procurement</option>
+            <option value="inspection">⭐ Inspection</option>
+            <option value="admin">Admin</option>
+            <option value="confirm">🔶 Confirm & Order</option>
+            <option value="receipt">📦 Material Receipt</option>
+            <option value="milestone">⭐ Milestone</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Status</label>
+          <select id="at-status">
+            <option value="not-started">⬜ Not Started</option>
+            <option value="progress">🔄 In Progress</option>
+            <option value="complete">✅ Complete</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Start Date (only if no predecessors)</label>
+        <input type="date" id="at-start">
+      </div>
+      <div class="form-row">
+        <label>Predecessor Task (optional — task will start after this one)</label>
+        <select id="at-pred">
+          <option value="">None — use start date above</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Vendor (optional)</label>
+        <input type="text" id="at-vendor" placeholder="e.g., Ferguson, KBM">
+      </div>
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="at-notes" placeholder="Any details, reminders, or context..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-task')">Cancel</button>
+      <button class="btn primary" onclick="submitAddTask()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD OWNER DECISION MODAL -->
+<div class="modal-overlay" id="modal-decision">
+  <div class="modal">
+    <div class="modal-header">
+      <span>Add Owner Decision</span>
+      <button onclick="closeModal('modal-decision')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Decision / Selection Required *</label>
+        <input type="text" id="ad-desc" placeholder="e.g., Master Bath Tile Selection">
+      </div>
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>Owner *</label>
+          <select id="ad-owner">
+            <option value="Rebecca">Rebecca</option>
+            <option value="Steve">Steve</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Decision Due Date *</label>
+          <input type="date" id="ad-due">
+        </div>
+      </div>
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>Vendor / Source</label>
+          <input type="text" id="ad-vendor" placeholder="e.g., Ferguson, Tile Shop">
+        </div>
+        <div class="form-row">
+          <label>Where to Shop</label>
+          <input type="text" id="ad-where" placeholder="e.g., Coastal Hardware">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Impact if Late</label>
+        <input type="text" id="ad-impact" placeholder="e.g., Delays plumbing final">
+      </div>
+      <div class="form-row">
+        <label>Need-By Date for Material (when Caleb needs it on site)</label>
+        <input type="date" id="ad-needby">
+      </div>
+      <div class="form-row">
+        <label>Notes & Details</label>
+        <textarea id="ad-notes" placeholder="Specific requirements, constraints, preferences..."></textarea>
+      </div>
+      <p style="font-size:0.8rem;color:var(--slate);margin-top:4px">
+        ℹ️ This will also auto-create a <strong>🔶 Confirm & Order</strong> task (1 day after due date) and a <strong>📦 Material Receipt</strong> task in Caleb's schedule.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-decision')">Cancel</button>
+      <button class="btn primary" onclick="submitAddDecision()">Add Decision</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
