@@ -597,16 +597,16 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
     <table>
       <thead>
         <tr>
-          <th style="width:50px">#</th>
-          <th>Task</th>
-          <th style="width:80px">Days</th>
-          <th>Predecessors</th>
-          <th style="width:110px">Start</th>
-          <th style="width:110px">Finish</th>
-          <th style="width:55px">Slack</th>
-          <th style="width:100px">Status</th>
-          <th style="width:75px">Type</th>
-          <th>Notes</th>
+          <th style="width:35px">#</th>
+          <th style="width:130px">Task</th>
+          <th style="width:40px">Days</th>
+          <th style="min-width:90px">Predecessors</th>
+          <th style="width:80px">Start</th>
+          <th style="width:80px">Finish</th>
+          <th style="width:35px">Slack</th>
+          <th style="width:150px">Status</th>
+          <th style="width:65px">Type</th>
+          <th style="min-width:140px">Notes</th>
         </tr>
       </thead>
       <tbody id="schedule-body"></tbody>
@@ -625,14 +625,15 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
       <thead>
         <tr>
           <th style="width:35px">#</th>
-          <th style="min-width:180px">Decision / Selection Required</th>
-          <th style="width:80px">Owner</th>
-          <th style="width:110px">Due Date</th>
-          <th style="width:110px">Status</th>
-          <th style="width:120px">Vendor</th>
-          <th style="width:110px">Where to Shop</th>
-          <th style="width:130px">Impact if Late</th>
-          <th style="min-width:200px">Notes & Details</th>
+          <th style="min-width:150px">Decision / Selection Required</th>
+          <th style="width:75px">Owner</th>
+          <th style="width:90px">Due Date</th>
+          <th style="width:160px">Status</th>
+          <th style="width:100px">Vendor</th>
+          <th style="width:90px">Where to Shop</th>
+          <th style="width:110px">Impact if Late</th>
+          <th style="min-width:160px">Notes & Details</th>
+          <th style="width:110px">Attachments</th>
         </tr>
       </thead>
       <tbody id="owners-body"></tbody>
@@ -1122,17 +1123,7 @@ function renderDashboard() {
         <div class="kpi-sub">milestones</div>
       </div>
     </div>
-    <div class="dash-cols">
-      <div class="dash-section">
-        <div class="dash-section-header red">⚠️ Upcoming Owner Deadlines</div>
-        ${upcomingDec.map(od => `
-          <div class="dash-row">
-            <span class="label">${od.desc}</span>
-            <span class="date">${fmt(od.dueDate)}</span>
-            <span class="owner-badge ${od.owner.toLowerCase()}">${od.owner}</span>
-          </div>
-        `).join('')}
-      </div>
+    <div style="max-width:700px;margin:0 auto">
       <div class="dash-section">
         <div class="dash-section-header navy">⭐ Milestones & Inspections</div>
         ${milestones.map(t => `
@@ -1216,15 +1207,15 @@ function renderSchedule() {
         ${t.vendor ? `<br><span style="font-size:0.75rem;color:var(--slate)">Vendor: ${t.vendor}</span>` : ''}
       </td>
       <td class="editable" onclick="editDays(${t.id}, this)" style="text-align:center;font-family:'JetBrains Mono',monospace">${t.days}</td>
-      <td style="font-size:0.75rem">${t.predIds.map(p => {
+      <td class="editable" onclick="editPredecessors(${t.id}, this)" style="font-size:0.75rem">${t.predIds.length > 0 ? t.predIds.map(p => {
         const pt = tasks.find(x=>x.id===p.id);
         return `<span class="dep-tag">${pt ? (pt.stepNum || pt.id) : p.id}${p.offset ? (p.offset>0?'+':'')+p.offset+'d' : ''}</span>`;
-      }).join('')}</td>
+      }).join('') : '<span style="color:var(--border)">+ add</span>'}</td>
       <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem">${fmt(t.start)}</td>
       <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem">${fmt(t.finish)}</td>
       <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:${t.slack!==null&&t.slack<=0?'var(--red)':'var(--slate)'}">${t.slack !== null ? t.slack : ''}</td>
       <td>
-        <select onchange="updateStatus(${t.id}, this.value)" style="font-size:0.78rem;padding:3px 6px;border-radius:4px;border:1px solid var(--border)">
+        <select onchange="updateStatus(${t.id}, this.value)" style="font-size:0.78rem;padding:3px 6px;border-radius:4px;border:1px solid var(--border);width:100%">
           ${statusOptions.map(s => `<option value="${s}" ${t.status===s?'selected':''}>${statusLabels[s]}</option>`).join('')}
         </select>
       </td>
@@ -1263,9 +1254,10 @@ function renderOwners() {
   let html = '';
   let rowNum = 0;
   for (const sec of sections) {
-    html += `<tr class="phase-header"><td colspan="9">▸ ${sec.title}</td></tr>`;
+    html += `<tr class="phase-header"><td colspan="10">▸ ${sec.title}</td></tr>`;
     for (const od of sec.items) {
       rowNum++;
+      const attachments = od.attachments || [];
       html += `<tr>
         <td style="text-align:center">${rowNum}</td>
         <td><strong>${od.desc}</strong></td>
@@ -1274,7 +1266,7 @@ function renderOwners() {
         </td>
         <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--red)">${fmt(od.dueDate)}</td>
         <td>
-          <select onchange="updateOwnerStatus(${od.num}, this.value)" style="font-size:0.78rem;padding:3px 6px;border-radius:4px;border:1px solid var(--border)">
+          <select onchange="updateOwnerStatus(${od.num}, this.value)" style="font-size:0.78rem;padding:3px 6px;border-radius:4px;border:1px solid var(--border);width:100%">
             ${statusOptions.map(s => `<option value="${s}" ${od.status===s?'selected':''}>${statusLabels[s]}</option>`).join('')}
           </select>
         </td>
@@ -1285,6 +1277,20 @@ function renderOwners() {
           ${od.notes
             ? `<span style="color:var(--text)">${od.notes}</span>`
             : `<span style="color:#ccc;font-style:italic">+ add notes</span>`}
+        </td>
+        <td style="text-align:center;font-size:0.75rem">
+          ${attachments.map((a, i) => `
+            <div style="margin:2px 0">
+              <a href="${a.url}" target="_blank" style="color:var(--navy);text-decoration:underline;font-size:0.7rem" title="${a.name}">
+                📎 ${a.name.length > 12 ? a.name.substring(0,12)+'…' : a.name}
+              </a>
+              <span onclick="removeAttachment(${od.num}, ${i})" style="cursor:pointer;color:var(--red);font-size:0.65rem" title="Remove">✕</span>
+            </div>
+          `).join('')}
+          <label style="cursor:pointer;display:inline-block;margin-top:2px;padding:2px 8px;background:var(--sky);color:var(--navy);border-radius:4px;font-size:0.7rem;font-weight:600">
+            📷 Add
+            <input type="file" accept="image/*,.pdf,.doc,.docx" multiple style="display:none" onchange="handleFileUpload(${od.num}, this)">
+          </label>
         </td>
       </tr>`;
     }
@@ -1570,6 +1576,102 @@ function saveOwnerNotes(num, input) {
   od.notes = input.value;
   renderOwners();
   markUnsaved();
+}
+
+// ---- EDIT PREDECESSORS ----
+function editPredecessors(id, td) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  // Show current predecessors as editable text: "3, 5+2d, 7-1d"
+  const current = t.predIds.map(p => {
+    const pt = tasks.find(x => x.id === p.id);
+    const label = pt ? (pt.stepNum || pt.id) : p.id;
+    const offset = p.offset ? (p.offset > 0 ? '+' : '') + p.offset + 'd' : '';
+    return label + offset;
+  }).join(', ');
+
+  td.innerHTML = `<input type="text" value="${current}" placeholder="e.g. 3, 5+2d" 
+    onblur="savePredecessors(${id}, this)" onkeydown="if(event.key==='Enter')this.blur()" 
+    style="width:100%;font-size:0.75rem" title="Enter step numbers separated by commas. Add +Nd or -Nd for offset days. Example: 3, 5+2d, 7-1d">`;
+  td.querySelector('input').focus();
+}
+
+function savePredecessors(id, input) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const raw = input.value.trim();
+  if (!raw) {
+    t.predIds = [];
+  } else {
+    const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+    const newPreds = [];
+    for (const part of parts) {
+      // Parse "5", "5+2d", "5-3d"
+      const match = part.match(/^(\d+)\s*([+-]\d+)?\s*d?$/);
+      if (match) {
+        const stepNum = parseInt(match[1]);
+        const offset = match[2] ? parseInt(match[2]) : 0;
+        // Find task by stepNum
+        const predTask = tasks.find(x => x.stepNum === stepNum);
+        if (predTask) {
+          newPreds.push({ id: predTask.id, offset: offset });
+        }
+      }
+    }
+    t.predIds = newPreds;
+  }
+  forwardPass();
+  backwardPass();
+  renderSchedule();
+  renderGantt();
+  markUnsaved();
+}
+
+// ---- FILE ATTACHMENTS (Owner Decisions) ----
+function handleFileUpload(num, input) {
+  const od = ownerDecisions.find(x => x.num === num);
+  if (!od) return;
+  if (!od.attachments) od.attachments = [];
+
+  const files = input.files;
+  if (!files || files.length === 0) return;
+
+  let processed = 0;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    // Max 5MB per file
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`File "${file.name}" is too large (max 5MB). Please compress or resize.`);
+      processed++;
+      continue;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      od.attachments.push({
+        name: file.name,
+        url: e.target.result, // base64 data URL
+        type: file.type,
+        size: file.size,
+        addedDate: new Date().toISOString()
+      });
+      processed++;
+      if (processed === files.length) {
+        renderOwners();
+        markUnsaved();
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function removeAttachment(num, index) {
+  const od = ownerDecisions.find(x => x.num === num);
+  if (!od || !od.attachments) return;
+  if (confirm(`Remove "${od.attachments[index].name}"?`)) {
+    od.attachments.splice(index, 1);
+    renderOwners();
+    markUnsaved();
+  }
 }
 
 function markUnsaved() {
