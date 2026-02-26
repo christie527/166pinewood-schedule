@@ -553,7 +553,7 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
 <div class="save-bar">
   <span style="font-weight:500;color:var(--navy)">🔄 Auto-saves for all users</span>
   <span id="save-status" class="status" style="font-weight:600;font-size:0.85rem">Connecting...</span>
-  <span style="font-size:0.65rem;color:var(--slate);margin-left:8px">v2.5</span>
+  <span style="font-size:0.65rem;color:var(--slate);margin-left:8px">v2.6</span>
   <button class="btn" onclick="recalcAll();renderAll();debouncedSave();" title="Re-run the dependency engine to recalculate all dates" style="margin-left:auto">🔄 Recalculate Dates</button>
 
 </div>
@@ -709,20 +709,27 @@ function d(str) {
 }
 function fmt(dt) {
   if (!dt) return 'TBD';
+  if (typeof dt === 'string') dt = new Date(dt);
+  if (!(dt instanceof Date) || isNaN(dt.getTime())) return 'TBD';
   const mm = String(dt.getMonth()+1).padStart(2,'0');
   const dd = String(dt.getDate()).padStart(2,'0');
   return `${mm}/${dd}/${dt.getFullYear()}`;
 }
 function isoStr(dt) {
   if (!dt) return '';
+  if (typeof dt === 'string') dt = new Date(dt);
+  if (!(dt instanceof Date) || isNaN(dt.getTime())) return '';
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 }
 function addDays(dt, n) {
+  if (typeof dt === 'string') dt = new Date(dt);
   const r = new Date(dt);
   r.setDate(r.getDate() + n);
   return r;
 }
 function diffDays(a, b) {
+  if (typeof a === 'string') a = new Date(a);
+  if (typeof b === 'string') b = new Date(b);
   return Math.round((b - a) / 86400000);
 }
 function isWeekend(dt) {
@@ -1820,6 +1827,11 @@ function dateReplacer(key, val) {
 }
 function dateReviver(key, val) {
   if (val && val.__date) return new Date(val.__date);
+  // Also catch raw ISO date strings that weren't wrapped
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) return d;
+  }
   return val;
 }
 
