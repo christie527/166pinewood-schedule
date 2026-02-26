@@ -243,11 +243,11 @@ body {
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
-.schedule-controls label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
+.schedule-controls label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
 .schedule-controls select, .schedule-controls input[type="text"] {
   font-family: inherit;
-  font-size: 0.8rem;
-  padding: 6px 12px;
+  font-size: 0.85rem;
+  padding: 7px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--white);
@@ -281,16 +281,16 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
 }
 thead th {
   background: var(--navy);
   color: #fff;
   font-weight: 600;
-  padding: 10px 12px;
+  padding: 12px 14px;
   text-align: left;
   white-space: nowrap;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   position: sticky;
@@ -298,7 +298,7 @@ thead th {
   z-index: 2;
 }
 tbody td {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-light);
   vertical-align: middle;
 }
@@ -307,8 +307,8 @@ tbody tr.phase-header td {
   background: var(--blue-pale);
   font-weight: 700;
   color: var(--navy);
-  font-size: 0.85rem;
-  padding: 10px 12px;
+  font-size: 0.95rem;
+  padding: 14px 14px;
   border-bottom: 2px solid var(--steel);
 }
 tbody tr.confirm-row td { background: var(--confirm-bg); }
@@ -323,8 +323,8 @@ td.editable {
 td.editable:hover { background: rgba(68,114,196,0.08); }
 td input, td select {
   font-family: inherit;
-  font-size: 0.82rem;
-  padding: 4px 6px;
+  font-size: 0.88rem;
+  padding: 5px 8px;
   border: 1px solid var(--steel);
   border-radius: 4px;
   width: 100%;
@@ -334,8 +334,8 @@ td input[type="number"] { width: 60px; text-align: center; }
 td input[type="date"] { width: 130px; }
 
 .task-type-badge {
-  font-size: 0.65rem;
-  padding: 1px 6px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
   border-radius: 8px;
   font-weight: 600;
   white-space: nowrap;
@@ -434,11 +434,12 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
   display: inline-block;
   background: var(--blue-pale);
   color: var(--steel);
-  font-size: 0.7rem;
-  padding: 1px 5px;
+  font-size: 0.78rem;
+  padding: 2px 7px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
   margin-right: 3px;
+  margin-bottom: 2px;
 }
 
 /* Save/Load bar */
@@ -553,7 +554,7 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
   <span style="font-weight:500;color:var(--navy)">🔄 Auto-saves for all users</span>
   <span id="save-status" class="status">Connecting...</span>
   <button class="btn" onclick="recalcAll();renderAll();debouncedSave();" title="Re-run the dependency engine to recalculate all dates" style="margin-left:auto">🔄 Recalculate Dates</button>
-  <button class="btn" onclick="resetToDefaults()" title="Reset all data back to the original schedule">⚠️ Reset to Original</button>
+
 </div>
 
 <nav class="tab-bar">
@@ -598,9 +599,9 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
       <thead>
         <tr>
           <th style="width:35px">#</th>
-          <th style="width:130px">Task</th>
+          <th style="min-width:220px">Task</th>
           <th style="width:40px">Days</th>
-          <th style="min-width:90px">Predecessors</th>
+          <th style="width:70px">Predecessors</th>
           <th style="width:80px">Start</th>
           <th style="width:80px">Finish</th>
           <th style="width:35px">Slack</th>
@@ -616,9 +617,6 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
 
 <!-- OWNERS -->
 <div id="owners" class="panel">
-  <div class="owner-alert">
-    ⚠️ <strong>Rebecca & Steve:</strong> These are YOUR decisions and selections. Delays here directly delay Caleb's construction schedule. Each decision has a corresponding "Confirm & Order" task and "Material Receipt" task in Caleb's schedule that will shift automatically.
-  </div>
   <div style="margin-bottom:12px"><button class="btn primary" onclick="openAddDecisionModal()">＋ Add Owner Decision</button></div>
   <div class="table-wrap">
     <table>
@@ -631,7 +629,6 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
           <th style="width:160px">Status</th>
           <th style="width:100px">Vendor</th>
           <th style="width:90px">Where to Shop</th>
-          <th style="width:110px">Impact if Late</th>
           <th style="min-width:160px">Notes & Details</th>
           <th style="width:110px">Attachments</th>
         </tr>
@@ -1201,26 +1198,26 @@ function renderSchedule() {
     }[t.type] || '';
 
     html += `<tr class="${rowClass}" data-id="${t.id}">
-      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--slate)">${t.stepNum || ''}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--slate)">${t.stepNum || ''}</td>
       <td>
-        <strong>${t.desc}</strong>
-        ${t.vendor ? `<br><span style="font-size:0.75rem;color:var(--slate)">Vendor: ${t.vendor}</span>` : ''}
+        <strong style="font-size:0.9rem">${t.desc}</strong>
+        ${t.vendor ? `<br><span style="font-size:0.78rem;color:var(--slate)">Vendor: ${t.vendor}</span>` : ''}
       </td>
-      <td class="editable" onclick="editDays(${t.id}, this)" style="text-align:center;font-family:'JetBrains Mono',monospace">${t.days}</td>
-      <td class="editable" onclick="editPredecessors(${t.id}, this)" style="font-size:0.75rem">${t.predIds.length > 0 ? t.predIds.map(p => {
+      <td class="editable" onclick="editDays(${t.id}, this)" style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:600">${t.days}</td>
+      <td class="editable" onclick="editPredecessors(${t.id}, this)" style="font-size:0.82rem">${t.predIds.length > 0 ? t.predIds.map(p => {
         const pt = tasks.find(x=>x.id===p.id);
         return `<span class="dep-tag">${pt ? (pt.stepNum || pt.id) : p.id}${p.offset ? (p.offset>0?'+':'')+p.offset+'d' : ''}</span>`;
       }).join('') : '<span style="color:var(--border)">+ add</span>'}</td>
-      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem">${fmt(t.start)}</td>
-      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem">${fmt(t.finish)}</td>
-      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:${t.slack!==null&&t.slack<=0?'var(--red)':'var(--slate)'}">${t.slack !== null ? t.slack : ''}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem">${fmt(t.start)}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem">${fmt(t.finish)}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:600;color:${t.slack!==null&&t.slack<=0?'var(--red)':'var(--slate)'}">${t.slack !== null ? t.slack : ''}</td>
       <td>
-        <select onchange="updateStatus(${t.id}, this.value)" style="font-size:0.78rem;padding:3px 6px;border-radius:4px;border:1px solid var(--border);width:100%">
+        <select onchange="updateStatus(${t.id}, this.value)" style="font-size:0.85rem;padding:5px 8px;border-radius:4px;border:1px solid var(--border);width:100%">
           ${statusOptions.map(s => `<option value="${s}" ${t.status===s?'selected':''}>${statusLabels[s]}</option>`).join('')}
         </select>
       </td>
       <td>${typeBadge}</td>
-      <td class="editable" onclick="editNotes(${t.id}, this)" style="font-size:0.8rem;color:var(--slate-dark);max-width:200px">${t.notes || '<span style=color:var(--border)>click to edit</span>'}</td>
+      <td class="editable" onclick="editNotes(${t.id}, this)" style="font-size:0.85rem;color:var(--slate-dark);max-width:220px">${t.notes || '<span style=color:var(--border)>click to edit</span>'}</td>
     </tr>`;
   }
 
@@ -1254,7 +1251,7 @@ function renderOwners() {
   let html = '';
   let rowNum = 0;
   for (const sec of sections) {
-    html += `<tr class="phase-header"><td colspan="10">▸ ${sec.title}</td></tr>`;
+    html += `<tr class="phase-header"><td colspan="9">▸ ${sec.title}</td></tr>`;
     for (const od of sec.items) {
       rowNum++;
       const attachments = od.attachments || [];
@@ -1272,7 +1269,6 @@ function renderOwners() {
         </td>
         <td style="font-size:0.8rem">${od.vendor || ''}</td>
         <td style="font-size:0.8rem">${od.where || ''}</td>
-        <td style="font-size:0.8rem;color:var(--red)">${od.impact || ''}</td>
         <td class="editable" onclick="editOwnerNotes(${od.num}, this)" style="font-size:0.8rem;max-width:280px;background:${od.notes ? '#fffef5' : '#fff'}">
           ${od.notes
             ? `<span style="color:var(--text)">${od.notes}</span>`
@@ -1684,15 +1680,14 @@ function markUnsaved() {
 // ⚠️ SETUP REQUIRED: Replace the config below with YOUR Firebase config.
 // See the SETUP-GUIDE.md file for step-by-step instructions.
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "YOUR_APP_ID_HERE"
+  apiKey: "AIzaSyB1abc123...",
+  authDomain: "pinewood-166.firebaseapp.com",
+  databaseURL: "https://pinewood-166-default-rtdb.firebaseio.com",
+  projectId: "pinewood-166",
+  storageBucket: "pinewood-166.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123..."
 };
-
 let firebaseReady = false;
 let dbRef = null;
 let saveTimeout = null;
@@ -1893,7 +1888,6 @@ function openAddDecisionModal() {
   document.getElementById('ad-due').value = '';
   document.getElementById('ad-vendor').value = '';
   document.getElementById('ad-where').value = '';
-  document.getElementById('ad-impact').value = '';
   document.getElementById('ad-needby').value = '';
   document.getElementById('ad-notes').value = '';
   openModal('modal-decision');
@@ -1906,7 +1900,6 @@ function submitAddDecision() {
   const owner = document.getElementById('ad-owner').value;
   const vendor = document.getElementById('ad-vendor').value.trim();
   const where = document.getElementById('ad-where').value.trim();
-  const impact = document.getElementById('ad-impact').value.trim();
   const needbyStr = document.getElementById('ad-needby').value;
   const notes = document.getElementById('ad-notes').value.trim();
 
@@ -1914,7 +1907,7 @@ function submitAddDecision() {
   ownerDecisions.push({
     num, desc, owner, dueDate: d(dueStr), dueDateStr: dueStr,
     status: 'pending', vendor: vendor || '?', where: where || 'TBD',
-    impact, notes
+    impact: '', notes
   });
 
   // Auto-create Confirm & Order task (1 day after due date)
@@ -2116,9 +2109,6 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
         </div>
       </div>
       <div class="form-row">
-        <label>Impact if Late</label>
-        <input type="text" id="ad-impact" placeholder="e.g., Delays plumbing final">
-      </div>
       <div class="form-row">
         <label>Need-By Date for Material (when Caleb needs it on site)</label>
         <input type="date" id="ad-needby">
