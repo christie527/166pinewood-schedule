@@ -1546,7 +1546,7 @@ function editDate(id, field, td) {
   if (!t) return;
   const currentDate = field === 'start' ? t.start : t.finish;
   const isManual = field === 'start' ? t.manualStart : t.manualFinish;
-  const currentVal = currentDate ? fmtISO(currentDate) : '';
+  const currentVal = currentDate ? isoStr(currentDate) : '';
   
   td.innerHTML = `<div style="display:flex;flex-direction:column;gap:3px;align-items:center">
     <input type="date" value="${currentVal}" onkeydown="if(event.key==='Enter')this.blur()" 
