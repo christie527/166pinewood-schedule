@@ -552,7 +552,8 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
 
 <div class="save-bar">
   <span style="font-weight:500;color:var(--navy)">🔄 Auto-saves for all users</span>
-  <span id="save-status" class="status">Connecting...</span>
+  <span id="save-status" class="status" style="font-weight:600;font-size:0.85rem">Connecting...</span>
+  <span style="font-size:0.65rem;color:var(--slate);margin-left:8px">v2.5</span>
   <button class="btn" onclick="recalcAll();renderAll();debouncedSave();" title="Re-run the dependency engine to recalculate all dates" style="margin-left:auto">🔄 Recalculate Dates</button>
 
 </div>
@@ -1056,8 +1057,7 @@ function recalcAll() {
     t.isCritical = t.slack !== null && t.slack <= 0;
   }
 
-  document.getElementById('save-status').textContent = 'Recalculated ✓';
-  document.getElementById('save-status').className = 'status';
+  // recalc complete — don't update save-status here, let save flow handle it
 }
 
 // ============================================================
