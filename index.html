@@ -995,15 +995,22 @@ function recalcAll() {
         }
         if (!latest || depDate > latest) latest = depDate;
       }
-      // If we have a manual start that's later, use that (for tasks with both deps and manual)
-      if (t.manualStart && (!latest || t.manualStart > latest)) {
+      // If manual start is set, always use it (override dependency)
+      if (t.manualStart) {
+        t.start = t.manualStart;
+      } else if (t.manualStart && (!latest || t.manualStart > latest)) {
         t.start = t.manualStart;
       } else {
         t.start = latest || t.manualStart || new Date();
       }
     }
-    t.finish = t.start ? addDays(t.start, Math.max(t.days - 1, 0)) : null;
-    if (t.days === 0 && t.start) t.finish = new Date(t.start);
+    // Finish: use manual override if set, otherwise calculate from start + days
+    if (t.manualFinish) {
+      t.finish = t.manualFinish;
+    } else {
+      t.finish = t.start ? addDays(t.start, Math.max(t.days - 1, 0)) : null;
+      if (t.days === 0 && t.start) t.finish = new Date(t.start);
+    }
   }
 
   // Backward pass: calculate latest start/finish and slack
@@ -1208,8 +1215,8 @@ function renderSchedule() {
         const pt = tasks.find(x=>x.id===p.id);
         return `<span class="dep-tag">${pt ? (pt.stepNum || pt.id) : p.id}${p.offset ? (p.offset>0?'+':'')+p.offset+'d' : ''}</span>`;
       }).join('') : '<span style="color:var(--border)">+ add</span>'}</td>
-      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem">${fmt(t.start)}</td>
-      <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem">${fmt(t.finish)}</td>
+      <td class="editable" onclick="editDate(${t.id}, 'start', this)" style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem${t.manualStart ? ';background:#fff3cd;font-weight:600' : ''}" title="${t.manualStart ? '📌 Manually set — click to edit or clear' : 'Click to override'}">${fmt(t.start)}</td>
+      <td class="editable" onclick="editDate(${t.id}, 'finish', this)" style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem${t.manualFinish ? ';background:#fff3cd;font-weight:600' : ''}" title="${t.manualFinish ? '📌 Manually set — click to edit or clear' : 'Click to override'}">${fmt(t.finish)}</td>
       <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:600;color:${t.slack!==null&&t.slack<=0?'var(--red)':'var(--slate)'}">${t.slack !== null ? t.slack : ''}</td>
       <td>
         <select onchange="updateStatus(${t.id}, this.value)" style="font-size:0.85rem;padding:5px 8px;border-radius:4px;border:1px solid var(--border);width:100%">
@@ -1534,6 +1541,73 @@ function saveDays(id, input) {
   markUnsaved();
 }
 
+function editDate(id, field, td) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const currentDate = field === 'start' ? t.start : t.finish;
+  const isManual = field === 'start' ? t.manualStart : t.manualFinish;
+  const currentVal = currentDate ? fmtISO(currentDate) : '';
+  
+  td.innerHTML = `<div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+    <input type="date" value="${currentVal}" onkeydown="if(event.key==='Enter')this.blur()" 
+      style="font-size:0.82rem;padding:2px 4px;width:130px"
+      id="date-edit-${id}-${field}">
+    ${isManual ? `<button onclick="clearDateOverride(${id}, '${field}')" 
+      style="font-size:0.68rem;padding:1px 6px;background:#fff3cd;border:1px solid #ddd;border-radius:3px;cursor:pointer">
+      ↩ Reset to auto</button>` : ''}
+  </div>`;
+  const inp = document.getElementById('date-edit-' + id + '-' + field);
+  inp.focus();
+  inp.addEventListener('blur', function() { saveDate(id, field, this); });
+}
+
+function saveDate(id, field, input) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const val = input.value;
+  if (!val) {
+    // Empty = clear override
+    clearDateOverride(id, field);
+    return;
+  }
+  const newDate = d(val);
+  if (field === 'start') {
+    t.manualStart = newDate;
+    t.start = newDate;
+    // Auto-calc finish from start + days if no manual finish
+    if (!t.manualFinish) {
+      t.finish = addDays(newDate, Math.max(t.days - 1, 0));
+    }
+  } else {
+    t.manualFinish = newDate;
+    t.finish = newDate;
+    // If finish is manually set, recalc days based on start→finish
+    if (t.start) {
+      t.days = Math.max(diffDays(t.start, newDate) + 1, 1);
+    }
+  }
+  recalcAll();
+  renderSchedule();
+  renderGantt();
+  renderDashboard();
+  markUnsaved();
+}
+
+function clearDateOverride(id, field) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  if (field === 'start') {
+    t.manualStart = null;
+  } else {
+    t.manualFinish = null;
+  }
+  recalcAll();
+  renderSchedule();
+  renderGantt();
+  renderDashboard();
+  markUnsaved();
+}
+
 function editNotes(id, td) {
   const t = tasks.find(x => x.id === id);
   if (!t) return;
@@ -1680,14 +1754,15 @@ function markUnsaved() {
 // ⚠️ SETUP REQUIRED: Replace the config below with YOUR Firebase config.
 // See the SETUP-GUIDE.md file for step-by-step instructions.
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyB1abc123...",
+  apiKey: "AIzaSyDkO7zdfUXx9ahmXqX_eI_ke7_iXYrUJMc",
   authDomain: "pinewood-166.firebaseapp.com",
   databaseURL: "https://pinewood-166-default-rtdb.firebaseio.com",
   projectId: "pinewood-166",
-  storageBucket: "pinewood-166.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123..."
+  storageBucket: "pinewood-166.firebasestorage.app",
+  messagingSenderId: "946653657310",
+  appId: "1:946653657310:web:ff5062f7f0db322f8cea4f"
 };
+
 let firebaseReady = false;
 let dbRef = null;
 let saveTimeout = null;
