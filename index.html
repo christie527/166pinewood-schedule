@@ -1005,14 +1005,9 @@ function recalcAll() {
         }
         if (!latest || depDate > latest) latest = depDate;
       }
-      // If manual start is set, always use it (override dependency)
-      if (t.manualStart) {
-        t.start = t.manualStart;
-      } else if (t.manualStart && (!latest || t.manualStart > latest)) {
-        t.start = t.manualStart;
-      } else {
-        t.start = latest || t.manualStart || new Date();
-      }
+      // Has predecessors — always use dependency-driven date.
+      // manualStart is only respected when there are NO predecessors.
+      t.start = latest || new Date();
     }
     // Finish: use manual override if set, otherwise calculate from start + days
     if (t.manualFinish) {
@@ -1585,7 +1580,7 @@ function editDate(id, field, td) {
     <input type="date" value="${currentVal}" onkeydown="if(event.key==='Enter')this.blur()" 
       style="font-size:0.82rem;padding:2px 4px;width:130px"
       id="date-edit-${id}-${field}">
-    ${isManual ? `<button onclick="clearDateOverride(${id}, '${field}')" 
+    ${isManual ? `<button onmousedown="event.preventDefault()" onclick="clearDateOverride(${id}, '${field}')"
       style="font-size:0.68rem;padding:1px 6px;background:#fff3cd;border:1px solid #ddd;border-radius:3px;cursor:pointer">
       ↩ Reset to auto</button>` : ''}
   </div>`;
@@ -1608,6 +1603,8 @@ function saveDate(id, field, input) {
   if (field === 'start') {
     t.manualStart = newDate;
     t.start = newDate;
+    // Manually anchoring a start date makes predecessors contradictory — clear them
+    t.predIds = [];
     // Auto-calc finish from start + days if no manual finish
     if (!t.manualFinish) {
       t.finish = addDays(newDate, Math.max(t.days - 1, 0));
