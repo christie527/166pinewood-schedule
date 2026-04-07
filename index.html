@@ -603,7 +603,7 @@ tbody tr.critical-path td { border-left: 3px solid var(--red); }
           <th style="min-width:220px">Task</th>
           <th style="width:40px">Days</th>
           <th style="width:70px">Predecessors</th>
-          <th style="width:80px">Start</th>
+          <th style="width:80px;cursor:pointer;user-select:none" onclick="toggleSortByStart()" id="th-start" title="Click to sort by start date">Start ↕</th>
           <th style="width:80px">Finish</th>
           <th style="width:35px">Slack</th>
           <th style="width:150px">Status</th>
@@ -699,6 +699,8 @@ const PHASES = [
 let tasks = [];
 let ownerDecisions = [];
 let nextId = 1;
+let sortByStart = false;
+let sortAsc = true;
 
 function makeId() { return nextId++; }
 
@@ -1151,6 +1153,20 @@ function renderDashboard() {
   `;
 }
 
+function toggleSortByStart() {
+  if (!sortByStart) {
+    sortByStart = true;
+    sortAsc = true;
+  } else if (sortAsc) {
+    sortAsc = false;
+  } else {
+    sortByStart = false; // third click resets to default order
+  }
+  const th = document.getElementById('th-start');
+  if (th) th.textContent = sortByStart ? ('Start ' + (sortAsc ? '↑' : '↓')) : 'Start ↕';
+  renderSchedule();
+}
+
 // ---- SCHEDULE TABLE ----
 function renderSchedule() {
   const tbody = document.getElementById('schedule-body');
@@ -1172,10 +1188,20 @@ function renderSchedule() {
     });
   }
 
+  // Build display list — sort by start date if active, otherwise keep default order
+  let displayTasks = [...tasks];
+  if (sortByStart) {
+    displayTasks.sort((a, b) => {
+      const aTime = a.start ? a.start.getTime() : Infinity;
+      const bTime = b.start ? b.start.getTime() : Infinity;
+      return sortAsc ? aTime - bTime : bTime - aTime;
+    });
+  }
+
   let html = '';
   let currentPhase = '';
 
-  for (const t of tasks) {
+  for (const t of displayTasks) {
     // Filters
     if (phaseFilter !== 'all' && t.phase !== phaseFilter) continue;
     if (statusFilter !== 'all' && t.status !== statusFilter) continue;
@@ -1183,8 +1209,8 @@ function renderSchedule() {
     if (search && !t.desc.toLowerCase().includes(search) && !(t.notes||'').toLowerCase().includes(search)) continue;
     if (!showComplete && t.status === 'complete') continue;
 
-    // Phase header
-    if (t.phase !== currentPhase) {
+    // Phase header — only show when not sorting
+    if (!sortByStart && t.phase !== currentPhase) {
       currentPhase = t.phase;
       html += `<tr class="phase-header"><td colspan="10">▸ ${currentPhase}</td></tr>`;
     }
@@ -1565,6 +1591,7 @@ function editDate(id, field, td) {
   </div>`;
   const inp = document.getElementById('date-edit-' + id + '-' + field);
   inp.focus();
+  if (inp.showPicker) setTimeout(() => inp.showPicker(), 50);
   inp.addEventListener('blur', function() { saveDate(id, field, this); });
 }
 
@@ -1697,8 +1724,7 @@ function savePredecessors(id, input) {
     }
     t.predIds = newPreds;
   }
-  forwardPass();
-  backwardPass();
+  recalcAll();
   renderSchedule();
   renderGantt();
   markUnsaved();
